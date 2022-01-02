@@ -5,10 +5,6 @@ from glob import glob
 from ast import literal_eval
 
 
-
-
-
-
 def load(path):
     if not os.path.exists(path+'/opp115.csv'):
         generate_dataset(path).to_csv(path+'/opp115.csv', sep=',', index=False)
