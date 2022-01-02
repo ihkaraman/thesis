@@ -1,0 +1,29 @@
+# First Party Collection/Use
+# Privacy practice describing data collection or data use by the company/organization owning the website or mobile app.
+# 
+# Third Party Sharing/Collection
+# Privacy practice describing data sharing with third parties or data collection by third parties. A third party is a company/organization other than the first party  company/organization that owns the website or mobile app.
+# 
+# User Choice/Control
+# Practice that describes general choices and control options available to users.
+# 
+# User Access, Edit and Deletion
+# Privacy practice that allows users to access, edit or delete the data that the company/organization has about them.
+# 
+# Data Retention
+# Privacy practice specifying the retention period for collected user information.
+# 
+# Data Security
+# Practice that describes how users’ information is secured and protected, e.g., from confidentiality, integrity, or availability breaches. Common practices include the encryption of stored data and online communications.
+# 
+# Policy Change
+# The company/organization’s practices concerning if and how users will be informed of changes to its privacy policy, including any choices offered to users.
+# 
+# Do Not Track
+# Practices that explain if and how Do Not Track signals (DNT) for online tracking and advertising are honored.
+# 
+# International and Specific Audiences
+# Specific audiences mentioned in the company/organization’s privacy policy, such as children or international users, for which the company/organization may provide special provisions.
+# 
+# Other
+# Another aspect not covered in the other categories is discussed in the text segment.
