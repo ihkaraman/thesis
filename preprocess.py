@@ -7,10 +7,10 @@ from nltk.stem import WordNetLemmatizer
 stop_words = stopwords.words('english')
 
 # reading extended stop words
-with open(r"C:\Users\IsmailKaraman\workspace\data\helper_data\extend_stopwords.txt", "r") as file:
+with open(r"C:\Users\IsmailKaraman\workspace\GitHub\private\resources\helper_data\extend_stopwords.txt", "r") as file:
     extend_stopwords = file.read().split('\n')
     
-with open(r"C:\Users\IsmailKaraman\workspace\data\helper_data\pharasal_verbs.txt", 'r') as file:
+with open(r"C:\Users\IsmailKaraman\workspace\GitHub\private\resources\helper_data\pharasal_verbs.txt", 'r') as file:
     pharasal_verbs = eval(file.read())
     
 # extending stopwords
