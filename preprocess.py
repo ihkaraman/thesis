@@ -7,15 +7,15 @@ from nltk.stem import WordNetLemmatizer
 stop_words = stopwords.words('english')
 
 # reading extended stop words
-# with open(r"C:\Users\IsmailKaraman\workspace\data\helper_data\extend_stopwords.txt", "r") as file:
-#    extend_stopwords = file.read().split('\n')
+with open(r"C:\Users\IsmailKaraman\workspace\data\helper_data\extend_stopwords.txt", "r") as file:
+    extend_stopwords = file.read().split('\n')
     
-#with open(r"C:\Users\IsmailKaraman\workspace\data\helper_data\pharasal_verbs.txt", 'r') as file:
-#    pharasal_verbs = eval(file.read())
+with open(r"C:\Users\IsmailKaraman\workspace\data\helper_data\pharasal_verbs.txt", 'r') as file:
+    pharasal_verbs = eval(file.read())
     
 # extending stopwords
 stop_words = stopwords.words('english')
-#stop_words.extend(extend_stopwords)
+stop_words.extend(extend_stopwords)
 
 def remove_html_tags(text):
     html_tags = re.compile('<.*?>') 
