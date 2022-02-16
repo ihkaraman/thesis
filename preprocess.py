@@ -43,14 +43,8 @@ def remove_emails(text):
 def remove_nonword_chars(text):
     return re.sub(r'[\W_]+', ' ', text)
 
-def remove_emails(text):
-    return re.sub(r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)', 'email', text)
-
 def remove_word_contains_numeric(text):
     return re.sub(r'\w*\d\w*', ' ', text)
-
-def remove_nonword_chars(text):
-    return re.sub(r'[\W_]+', ' ', text)
 
 def remove_stopwords(text):
     text = [word for word in text.split(' ') if word not in stop_words]
