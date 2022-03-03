@@ -89,7 +89,7 @@ def check_len(text):
     text = ' '.join(words)
     return text
 
-def preprocess_text(text, word_root_preprocesser='lemmatizer'):
+def preprocess_text(text, word_root_preprocesser='None'):
     
     text = text.lower()
     text = remove_html_tags(text)
@@ -100,12 +100,14 @@ def preprocess_text(text, word_root_preprocesser='lemmatizer'):
     text = remove_predefined_words(text)
     
     text = remove_nonword_chars(text)
-    text = remove_stopwords(text)
+    # text = remove_stopwords(text)
     
     if word_root_preprocesser == 'lemmatizer':
         text = lemmatize_words(text)
     elif word_root_preprocesser == 'stemmer':  
         text = stem_words(text)
+    elif word_root_preprocesser == 'None':
+        pass
       
     text = check_len(text)
     
