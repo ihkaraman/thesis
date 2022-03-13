@@ -55,6 +55,7 @@ def vector_similarity(vec1, vec2, sim_type=sim_type):
         similarity = minkowski_similarity(vec1, vec2, int(sim_type[-1]))
     if sim_type == 'JS':
         similarity = jensenshannon(vec1, vec2)
+        
     return similarity
 
 
