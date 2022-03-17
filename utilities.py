@@ -38,7 +38,6 @@ def vectorize_data(text, model_name='stsb-roberta-large'):
     
     model = SentenceTransformer(model_name)
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    
     vectors = model.encode(text, convert_to_tensor=False, device=device)
     
     return vectors
