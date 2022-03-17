@@ -41,7 +41,7 @@ def minkowski_similarity(u, v, p=2):
 # In[ ]:
 
 
-def vector_similarity(vec1, vec2, sim_type=sim_type):
+def vector_similarity(vec1, vec2, sim_type='cosine'):
     
     if sim_type == 'cosine':
         similarity = cosine_similarity(vec1, vec2)
@@ -62,7 +62,7 @@ def vector_similarity(vec1, vec2, sim_type=sim_type):
 # In[ ]:
 
 
-def calculate_within_class_similarity(vecs, sim_type=sim_type):
+def calculate_within_class_similarity(vecs, sim_type='cosine'):
     
     similarities = []
     
@@ -80,7 +80,7 @@ def calculate_within_class_similarity(vecs, sim_type=sim_type):
 # In[ ]:
 
 
-def calculate_similarity_between_vector_and_class(vec, class_vecs, sim_type=sim_type):
+def calculate_similarity_between_vector_and_class(vec, class_vecs, sim_type='cosine'):
     
     similarities = []
     
@@ -103,8 +103,7 @@ def calculate_overall_class_similarities(X, y):
     class_similarities = {}
     for col in y.columns:
         indexes = (y[col] == 1).index
-        aa = X.loc[indexes]
-        class_similarities[col] = calculate_within_class_similarity(aa) 
+        class_similarities[col] = calculate_within_class_similarity(X.loc[indexes]) 
         
     return class_similarities
 
