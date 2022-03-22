@@ -2,3 +2,4 @@
 .ipynb_checkpoints/*
 __pycache__/similarities.cpython-38.pyc
 *.pyc
+*.data

@@ -148,7 +148,7 @@ def find_similar_columns(instance, X_labeled, y_labeled, other_columns):
 # In[ ]:
 
 
-def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled):
+def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, threshold_factor):
     
     # giving priority to mostly imbalanced classes
     num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
@@ -171,7 +171,7 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
             continue
         
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
-        new_instances = find_new_instances(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name])
+        new_instances = find_new_instances(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name]*threshold_factor)
         
         for instance_index in new_instances:
             
@@ -187,7 +187,7 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
             other_columns = [i for i in y_labeled.columns if i not in processed_columns]
             other_similarities = find_similar_columns(instance_X, X_labeled, y_labeled, other_columns)
             for col, sim in other_similarities.items():
-                if sim > class_similarities[col]:
+                if sim > class_similarities[col]*threshold_factor:
                     new_labels[col] = 1
             
             ### appending data to unlabeled set and removing it from unlabeled set

@@ -8,18 +8,26 @@ from itertools import combinations
 import numpy as np
 from scipy.spatial.distance import jensenshannon
 
-
-sim_type = 'cosine'
+e = 0.00001
 # In[ ]:
 
+def convert_distance_to_metric(distance):
+    
+    # how to convet a distance to a similarity metric
+    # similarity = 1 / distance is a good method?
+    
+    if distance == 0:
+        distance += e
+        
+    return 1/distance
 
 def cosine_similarity(vec1, vec2):
     norm1 = np.linalg.norm(vec1)
     norm2 = np.linalg.norm(vec2)
     if norm1 == 0:
-        norm1 += 0.00001
+        norm1 += e
     if norm2 == 0:
-        norm2 += 0.00001   
+        norm2 += e  
     return np.dot(vec1, vec2)/(norm1*norm2)
 
 
@@ -32,12 +40,18 @@ def minkowski_similarity(u, v, p=2):
         raise ValueError("p must be greater than 0")
     u_v = u - v
     dist = np.linalg.norm(u_v, ord=p)
-    if dist == 0:
-        dist += 0.0001
         
-    return 1/dist #converting a distance to similarity
+    return convert_distance_to_metric(dist) #converting a distance to similarity
 
 
+# In[ ]:
+
+def js_similarity(vec1, vec2):
+    
+    dist = jensenshannon(vec1, vec2)
+
+    return convert_distance_to_metric(dist)
+    
 # In[ ]:
 
 
@@ -54,7 +68,7 @@ def vector_similarity(vec1, vec2, sim_type='cosine'):
     if sim_type.startswith('minkowski'):
         similarity = minkowski_similarity(vec1, vec2, int(sim_type[-1]))
     if sim_type == 'JS':
-        similarity = jensenshannon(vec1, vec2)
+        similarity = js_similarity(vec1, vec2)
         
     return similarity
 
