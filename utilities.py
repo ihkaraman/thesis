@@ -148,7 +148,17 @@ def find_similar_columns(instance, X_labeled, y_labeled, other_columns):
 # In[ ]:
 
 
-def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, threshold_factor):
+def oversample_dataset_all_possible_instances(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, similarity_factor):
+    
+    
+    # 1. sort required # of new instances
+    # 2. calculate class similarities
+    # 3. iterate over columns that requieres most # of instances to balance
+    # 4. find the all posible instances that can be found in the unlabeled set by using the similarities
+    # 5. look for other labels that can be assigned to the found instances
+    # 6. the ones that have higher similarity than average class similarity times similarity factor are assigned to that class
+    # 7. add the new instances to the labeled instances for X_labeled and y_labeled
+    # 8. remove the new instances from the unlabeled set# 
     
     # giving priority to mostly imbalanced classes
     num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
@@ -171,7 +181,7 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
             continue
         
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
-        new_instances = find_new_instances(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name]*threshold_factor)
+        new_instances = find_new_instances(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name]*similarity_factor)
         
         for instance_index in new_instances:
             
@@ -187,7 +197,7 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
             other_columns = [i for i in y_labeled.columns if i not in processed_columns]
             other_similarities = find_similar_columns(instance_X, X_labeled, y_labeled, other_columns)
             for col, sim in other_similarities.items():
-                if sim > class_similarities[col]*threshold_factor:
+                if sim > class_similarities[col]*similarity_factor:
                     new_labels[col] = 1
             
             ### appending data to unlabeled set and removing it from unlabeled set
@@ -208,3 +218,74 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
     
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
 
+
+def oversample_dataset_with_batches(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, similarity_factor, batch_size):
+    
+    
+    # 1. sort required # of new instances
+    # 2. calculate class similarities
+    # 3. iterate over columns that requieres most # of instances to balance
+    # 4. find the all posible instances that can be found in the unlabeled set by using the similarities
+    # 5. look for other labels that can be assigned to the found instances
+    # 6. the ones that have higher similarity than average class similarity times similarity factor are assigned to that class
+    # 7. add the new instances to the labeled instances for X_labeled and y_labeled
+    # 8. remove the new instances from the unlabeled set# 
+    
+    
+    # giving priority to mostly imbalanced classes
+    num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
+    
+    class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled)
+    
+    processed_columns = []
+    
+    validation = {}
+    val_idx = 0
+    
+    for col_name, num_instance in num_of_new_instances.items():
+        
+        # note: we didnt use num_instance
+        # the instances will be added should not exceed num_instance
+        
+        processed_columns.append(col_name)
+        
+        if num_instance == 0:
+            continue
+        
+        indexes = (y_labeled[y_labeled[col_name] == 1]).index
+        new_instances = find_new_instances(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name]*similarity_factor)
+        
+        for instance_index in new_instances:
+            
+            instance_X = X_unlabeled.loc[instance_index]
+            instance_y = y_unlabeled.loc[instance_index] # note: this is for test case
+            
+            # defining all labels as 0s
+            new_labels = {c:0 for c in y_labeled.columns}
+            # changing col_name's label as 1
+            new_labels[col_name] = 1
+            
+            ### finding other labels
+            other_columns = [i for i in y_labeled.columns if i not in processed_columns]
+            other_similarities = find_similar_columns(instance_X, X_labeled, y_labeled, other_columns)
+            for col, sim in other_similarities.items():
+                if sim > class_similarities[col]*similarity_factor:
+                    new_labels[col] = 1
+            
+            ### appending data to unlabeled set and removing it from unlabeled set
+            # starting index of new instances from a big number
+            instance_new_index = max(starting_index, max(X_labeled.index)) + 1
+            instance_X_series = pd.Series([instance_X], index=[instance_new_index])
+            instance_new_labels =pd.DataFrame(new_labels, index=[instance_new_index])
+            # adding new instance to labeled set
+            X_labeled = pd.concat([X_labeled, instance_X_series])
+            y_labeled = pd.concat([y_labeled, instance_new_labels])
+            # removing new instance from unlabeled set
+            X_unlabeled.drop(instance_index, inplace=True)
+            y_unlabeled.drop(instance_index, inplace=True) # note: this is for test case
+            
+            # validation
+            validation[val_idx] = (col_name, instance_index, instance_X, (instance_y), new_labels)
+            val_idx += 1
+    
+    return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
