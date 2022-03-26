@@ -75,49 +75,52 @@ def vector_similarity(vec1, vec2, sim_type='cosine'):
 
 # In[ ]:
 
+def degrade_vector_to_scalar(vec, sim_calculation_type):
+    
+    if sim_calculation_type = 'average':
+        
+        try:
+            class_similarity = sum(similarities)/len(similarities)
+        except AssertionErrors:
+            print('Error occured')
+            
+    elif sim_calculation_type = 'safe_interval':
+        class_similarity = np.percentile(similarities, 75)
+   
+    return class_similarity
 
-def calculate_within_class_similarity(vecs, sim_type='cosine'):
+def calculate_within_class_similarity(vecs, sim_calculation_type, sim_type='cosine'):
     
     similarities = []
     
     for i,j in list(combinations(vecs.index, 2)):
         similarities.append(vector_similarity(vecs.loc[i], vecs.loc[j], sim_type))    
-            
-    try:
-        avg_similarity = sum(similarities)/len(similarities)
-    except AssertionErrors:
-        print('Error occured')
-        
-    return avg_similarity 
+      
+    return degrade_vector_to_scalar(similarities, sim_calculation_type) 
 
 
 # In[ ]:
 
 
-def calculate_similarity_between_vector_and_class(vec, class_vecs, sim_type='cosine'):
+def calculate_similarity_between_vector_and_class(vec, class_vecs, sim_calculation_type='average', sim_type='cosine'):
     
     similarities = []
     
     for c_vec in class_vecs:
         similarities.append(vector_similarity(vec, c_vec, sim_type))
-    
-    try:
-        avg_similarity = sum(similarities)/len(similarities)
-    except AssertionErrors:
-        print('Error occured')
         
-    return avg_similarity 
+    return degrade_vector_to_scalar(similarities, sim_calculation_type) 
 
 
 # In[ ]:
 
 
-def calculate_overall_class_similarities(X, y):
+def calculate_overall_class_similarities(X, y, sim_calculation_type):
     
     class_similarities = {}
     for col in y.columns:
         indexes = (y[col] == 1).index
-        class_similarities[col] = calculate_within_class_similarity(X.loc[indexes]) 
+        class_similarities[col] = calculate_within_class_similarity(X.loc[indexes], sim_calculation_type) 
         
     return class_similarities
 

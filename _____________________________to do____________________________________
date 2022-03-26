@@ -1,0 +1,44 @@
+balancing mechanism 
+    + instead of averaging the similarities find a safe interval
+    ++ two types of calculation method is implemented
+        average
+        0.75 quartile
+
+implement batched version
+    + adding batch_size of item in each iteration, -1 means all, positive integers are batch sizes
+   
+iterative process to check improvement
+    only for the affected labels, the labels that are found during the oversampling
+    maybe AL can be included
+    similarity factor
+        each time change threshold with a logic like simulated annealing
+        threshold can be tuned with with the results of the iterative classifier
+    
+try different similarity metrics
+
+find the most effective embedding method
+
+
+similairty-distance relation 
+    -from Applied multivariate statistical analysis
+        s = 1/(1+d)
+        d = (2*(1-s))^0.5
+    -s = 1 / d
+    -s = 1 / (d+1)
+    -s = 1 / e^d 
+    -normed
+        a. find norm: d_norm = distance / max(distance)
+        b. similarity = 1 - d_norm
+
+Parameters
+    calculation_type - category
+        'average' : calculates avg. similarity
+        'safe_interval' : finds 0.75 quartile
+    batch_size - int
+        -1 : finds all possible instances
+        >0 : uses batchs
+
+
+
+
+
