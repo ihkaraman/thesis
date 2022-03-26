@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.svm import LinearSVC
+from sentence_transformers import util, SentenceTransformer
 from sklearn.metrics import hamming_loss, accuracy_score, classification_report
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.multiclass import OneVsRestClassifier
@@ -139,8 +140,8 @@ def find_new_instances(X_labeled, X_unlabeled, class_similarity, batch_size):
     new_instances = []
     
     for idx, instance in X_unlabeled.iteritems():
-        class_sim = similarities.calculate_similarity_between_vector_and_class(instance, X_labeled)
-        if class_sim > class_similarity:
+        ins_sim = similarities.calculate_similarity_between_vector_and_class(instance, X_labeled)
+        if ins_sim > class_similarity:
             new_instances.append(idx)
             if len(new_instances) >= batch_size:
                 break
@@ -193,8 +194,7 @@ def rearranging_sets(instance_X, instance_index, new_labels, X_labeled, y_labele
 
     return X_labeled, y_labeled, X_unlabeled, y_unlabeled
 
-def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, batch_size, 
-                                    sim_calculation_type):
+def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size):
     
     # 1. sort required # of new instances
     # 2. calculate class similarities
@@ -245,18 +245,19 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
                 val_idx += 1
                 
             # check results after every batch
+            print(col_name)
             print(X_labeled.shape, X_unlabeled.shape)
             classifier(np.vstack(X_labeled.values), y_labeled, np.vstack(X_test.values), y_test)
 
             y_true, y_pred = [], []
             for _, _, _, y_t, y_p in validation.values():
-                y_true.append(list(y_true.values))
-                y_pred.append(list(y_pred.values()))
+                y_true.append(list(y_t.values))
+                y_pred.append(list(y_p.values()))
                               
             
             acc = 1-hamming_loss(y_true, y_pred)
-            emr = accuracy_score(y_true, y_pred)            
-            print('Metrics for the proposed algorithm ')    
+            emr = accuracy_score(y_true, y_pred)  
+            print('-'*30)
             print(f'Exact match ratio : {emr:.2f} ')
             print(f'Accuracy          : {acc:.2f} ')
             print('-'*30)
