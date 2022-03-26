@@ -12,7 +12,6 @@ import numpy as np
 
 from sklearn.svm import LinearSVC
 from sklearn.metrics import hamming_loss, accuracy_score, classification_report
-from sentence_transformers import util, SentenceTransformer
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.multiclass import OneVsRestClassifier
 
@@ -123,7 +122,6 @@ def calculate_balancing_num_instance_multiclass(y, balance_ratio):
     
     oversampling_counts = {}
     n_samples = y.shape[0]
-    n_classes = y.shape[1]
     
     for col in y.columns:
         oversampling_counts[col] = calculate_balancing_num_instance_binary(y[col].sum(), n_samples, balance_ratio)
@@ -162,7 +160,7 @@ def find_similar_columns(instance, X_labeled, y_labeled, other_columns):
     return other_similarities
 
 
-def find_other_labels(instance_X, X_labeled, y_labeled, col_name, processed_columns):
+def find_other_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, processed_columns):
                 
     # defining all labels as 0s
     new_labels = {c:0 for c in y_labeled.columns}
@@ -179,7 +177,7 @@ def find_other_labels(instance_X, X_labeled, y_labeled, col_name, processed_colu
     return new_labels
 
 
-def rearranging_sets(instance_X, new_labels, X_labeled, y_labeled, X_unlabeled, y_unlabeled):
+def rearranging_sets(instance_X, instance_index, new_labels, X_labeled, y_labeled, X_unlabeled, y_unlabeled):
                     
     ### appending data to unlabeled set and removing it from unlabeled set
     # starting index of new instances from a big number
@@ -195,7 +193,7 @@ def rearranging_sets(instance_X, new_labels, X_labeled, y_labeled, X_unlabeled, 
 
     return X_labeled, y_labeled, X_unlabeled, y_unlabeled
 
-def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, batch_size, 
+def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, batch_size, 
                                     sim_calculation_type):
     
     # 1. sort required # of new instances
@@ -238,23 +236,24 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
                 instance_X = X_unlabeled.loc[instance_index]
                 instance_y = y_unlabeled.loc[instance_index] # note: this is for test case
 
-                new_labels = find_other_labels(instance_X, X_labeled, y_labeled, col_name, processed_columns)
+                new_labels = find_other_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, processed_columns)
                 
-                X_labeled, y_labeled, X_unlabeled, y_unlabeled = rearranging_sets(X_labeled, y_labeled, X_unlabeled, y_unlabeled)
+                X_labeled, y_labeled, X_unlabeled, y_unlabeled = rearranging_sets(instance_X, instance_index, new_labels, X_labeled, y_labeled, X_unlabeled, y_unlabeled)
                 
                 # validation
                 validation[val_idx] = (col_name, instance_index, instance_X, (instance_y), new_labels)
                 val_idx += 1
                 
             # check results after every batch
-            print(X_labeled.shape, X_unlabeled.shape, X_test.shape)
-            utilities.classifier(np.vstack(X_labeled.values), y_labeled, np.vstack(X_test.values), y_test)
+            print(X_labeled.shape, X_unlabeled.shape)
+            classifier(np.vstack(X_labeled.values), y_labeled, np.vstack(X_test.values), y_test)
 
             y_true, y_pred = [], []
             for _, _, _, y_t, y_p in validation.values():
                 y_true.append(list(y_true.values))
-                y_pred.append(list(y_pred.values())
-
+                y_pred.append(list(y_pred.values()))
+                              
+            
             acc = 1-hamming_loss(y_true, y_pred)
             emr = accuracy_score(y_true, y_pred)            
             print('Metrics for the proposed algorithm ')    
