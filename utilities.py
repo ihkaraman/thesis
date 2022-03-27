@@ -67,18 +67,14 @@ def binary_classifier(X_train, y_train, X_test, y_test):
     model.fit(X_train, y_train)
     preds = model.predict(X_test)
     
-    print('+ '*50)
-    print("\033[1m" + 'Binary Classifier Results' + "\033[0m")
-    print("\033[1m" + 'LinearSVM' + "\033[0m")
-    print('-'*30)
-    acc_score = accuracy_score(y_test, preds)
-    print('Exact Match Ratio: {:.2f}'.format(acc_score))
-    print('-'*30)
-    print("\033[1m" + 'Classification Report' + "\033[0m")
-    print(classification_report(y_test, preds, target_names=list(y_test.columns)))
-    print('+ '*50)
+    #print('+ '*50)
+    #print("\033[1m" + 'Binary Classifier Results' + "\033[0m")
+    #print("\033[1m" + 'LinearSVM' + "\033[0m")
+    #print('-'*30)
+    #print("\033[1m" + 'Classification Report' + "\033[0m")
+    #print(classification_report(y_test, preds))
     
-    return f1_score(y_test, preds)
+    return f1_score(y_test, preds, average='binary')
     
     
 def multilabel_classifier(X_train, y_train, X_test, y_test):
@@ -90,7 +86,7 @@ def multilabel_classifier(X_train, y_train, X_test, y_test):
     model.fit(X_train, y_train.values)
     preds = model.predict(X_test)
     
-    print('* '*50)
+    print('| '*50)
     print("\033[1m" + 'Multilabel Classifier Results' + "\033[0m")
     print("\033[1m" + 'LinearSVM' + "\033[0m")
     print('-'*30)
@@ -101,7 +97,7 @@ def multilabel_classifier(X_train, y_train, X_test, y_test):
     print('-'*30)
     print("\033[1m" + 'Classification Report' + "\033[0m")
     print(classification_report(y_test.values, preds, target_names=list(y_test.columns)))
-    print('* '*50)
+    print('| '*100)
 
 
 # In[ ]:
@@ -266,9 +262,10 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
         if num_instance <= 0:
             continue
        
-        print('*'*50)
-        print("\033[1m" + col_name + "\033[0m")
-        f1_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test)
+        
+        print("\033[1m" + '-'*15 + col_name + '-'*15 +"\033[0m")
+        print('='*50)
+        f1_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
         
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
         batches = find_batches(batch_size, num_instance)
@@ -279,10 +276,10 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
             val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, class_similarities, col_name, processed_columns)
             
             # check results after every batch
-            f1_after = binary_classifier(np.vstack(X_labeled_new.values), y_labeled_new[col_name], np.vstack(X_test.values), y_test)
-            
+            f1_after = binary_classifier(np.vstack(X_labeled_new.values), y_labeled_new[col_name], np.vstack(X_test.values), y_test[col_name])
+            print('f1 before :', f1_before, ' f1 after :', f1_after, )
             if f1_after > f1_before:
-                
+                print('adding instances ... ')
                 X_labeled, y_labeled = X_labeled_new, y_labeled_new
                 validation.extend(val_new)
                 f1_before = f1_after

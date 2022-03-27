@@ -18,6 +18,9 @@ try different similarity metrics
 
 find the most effective embedding method
 
+define a stopping condition
+- now num of req instances to balance a class is calculated and split into batches but a batch is added if it improves the f1, it may not add instance
+- it should be like, I searched all the data and stop if no improvement, or iteration
 
 similairty-distance relation 
     -from Applied multivariate statistical analysis
