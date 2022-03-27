@@ -268,7 +268,7 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
        
         print('*'*50)
         print("\033[1m" + col_name + "\033[0m")
-        f1_before = binary_classifier(X_labeled, y_labeled[col_name], X_test, y_test)
+        f1_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test)
         
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
         batches = find_batches(batch_size, num_instance)
@@ -279,7 +279,7 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
             val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, class_similarities, col_name, processed_columns)
             
             # check results after every batch
-            f1_after = binary_classifier(X_labeled_new, y_labeled_new[col_name], X_test, y_test)
+            f1_after = binary_classifier(np.vstack(X_labeled_new.values), y_labeled_new[col_name], np.vstack(X_test.values), y_test)
             
             if f1_after > f1_before:
                 
