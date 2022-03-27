@@ -30,6 +30,13 @@ similairty-distance relation
         a. find norm: d_norm = distance / max(distance)
         b. similarity = 1 - d_norm
 
+
+notes:
+-during oversampling we calculate class similarities only with labeled set and we use it in each iteration during oversampling
+recalculating it in each iteration after new instances are added may help!
+
+
+
 Parameters
     calculation_type - category
         'average' : calculates avg. similarity

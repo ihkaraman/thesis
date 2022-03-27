@@ -12,7 +12,7 @@ import numpy as np
 
 from sklearn.svm import LinearSVC
 from sentence_transformers import util, SentenceTransformer
-from sklearn.metrics import hamming_loss, accuracy_score, classification_report
+from sklearn.metrics import hamming_loss, accuracy_score, f1_score, classification_report
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.multiclass import OneVsRestClassifier
 
@@ -58,8 +58,30 @@ def calculating_class_weights(y_true):
 
 # In[ ]:
 
+def binary_classifier(X_train, y_train, X_test, y_test):
 
-def classifier(X_train, y_train, X_test, y_test):
+    # class_weights = calculating_class_weights(y_train.values)
+    
+    # Linear SVM
+    model = LinearSVC(class_weight='balanced')
+    model.fit(X_train, y_train)
+    preds = model.predict(X_test)
+    
+    print('+ '*50)
+    print("\033[1m" + 'Binary Classifier Results' + "\033[0m")
+    print("\033[1m" + 'LinearSVM' + "\033[0m")
+    print('-'*30)
+    acc_score = accuracy_score(y_test, preds)
+    print('Exact Match Ratio: {:.2f}'.format(acc_score))
+    print('-'*30)
+    print("\033[1m" + 'Classification Report' + "\033[0m")
+    print(classification_report(y_test, preds, target_names=list(y_test.columns)))
+    print('+ '*50)
+    
+    return f1_score(y_test, preds)
+    
+    
+def multilabel_classifier(X_train, y_train, X_test, y_test):
 
     # class_weights = calculating_class_weights(y_train.values)
     
@@ -68,7 +90,9 @@ def classifier(X_train, y_train, X_test, y_test):
     model.fit(X_train, y_train.values)
     preds = model.predict(X_test)
     
-    print("\033[1m" + 'LinearSVM results: ' + "\033[0m")
+    print('* '*50)
+    print("\033[1m" + 'Multilabel Classifier Results' + "\033[0m")
+    print("\033[1m" + 'LinearSVM' + "\033[0m")
     print('-'*30)
     hamLoss = hamming_loss(y_test.values, preds)
     print('hamLoss: {:.2f}'.format(hamLoss))
@@ -77,6 +101,7 @@ def classifier(X_train, y_train, X_test, y_test):
     print('-'*30)
     print("\033[1m" + 'Classification Report' + "\033[0m")
     print(classification_report(y_test.values, preds, target_names=list(y_test.columns)))
+    print('* '*50)
 
 
 # In[ ]:
@@ -178,8 +203,9 @@ def find_other_labels(instance_X, X_labeled, y_labeled, class_similarities, col_
     return new_labels
 
 
-def rearranging_sets(instance_X, instance_index, new_labels, X_labeled, y_labeled, X_unlabeled, y_unlabeled):
-                    
+def add_instance(instance_X, instance_index, new_labels, X_labeled, y_labeled, X_unlabeled, y_unlabeled):
+# can be improved
+                   
     ### appending data to unlabeled set and removing it from unlabeled set
     # starting index of new instances from a big number
     instance_new_index = max(starting_index, max(X_labeled.index)) + 1
@@ -194,6 +220,24 @@ def rearranging_sets(instance_X, instance_index, new_labels, X_labeled, y_labele
 
     return X_labeled, y_labeled, X_unlabeled, y_unlabeled
 
+
+def prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, class_similarities, col_name, processed_columns):
+# can be improved
+    validation = []
+    
+    for instance_index in new_instances:
+
+        instance_X = X_unlabeled.loc[instance_index]
+        instance_y = y_unlabeled.loc[instance_index] # note: this is for test case
+
+        new_labels = find_other_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, processed_columns)
+        X_labeled, y_labeled, X_unlabeled, y_unlabeled = add_instance(instance_X, instance_index, new_labels, X_labeled, y_labeled, X_unlabeled, y_unlabeled)
+        # validation
+        validation.append((col_name, instance_index, instance_X, (instance_y), new_labels))
+    
+    return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled
+        
+        
 def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size):
     
     # 1. sort required # of new instances
@@ -206,15 +250,13 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
     # 8. add the new instances to the labeled instances for X_labeled and y_labeled
     # 9. remove the new instances from the unlabeled set
     
-    
     # giving priority to mostly imbalanced classes
     num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
     
     class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type)
     
     processed_columns = []
-    validation = {}
-    val_idx = 0
+    validation = []
     
     for col_name, num_instance in num_of_new_instances.items():
         
@@ -224,42 +266,32 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
         if num_instance <= 0:
             continue
        
+        print('*'*50)
+        print("\033[1m" + col_name + "\033[0m")
+        f1_before = binary_classifier(X_labeled, y_labeled[col_name], X_test, y_test)
+        
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
         batches = find_batches(batch_size, num_instance)
         
         for batch in batches:
             
-            new_instances = find_new_instances(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name], batch)
-        
-            for instance_index in new_instances:
-
-                instance_X = X_unlabeled.loc[instance_index]
-                instance_y = y_unlabeled.loc[instance_index] # note: this is for test case
-
-                new_labels = find_other_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, processed_columns)
-                
-                X_labeled, y_labeled, X_unlabeled, y_unlabeled = rearranging_sets(instance_X, instance_index, new_labels, X_labeled, y_labeled, X_unlabeled, y_unlabeled)
-                
-                # validation
-                validation[val_idx] = (col_name, instance_index, instance_X, (instance_y), new_labels)
-                val_idx += 1
-                
-            # check results after every batch
-            print(col_name)
-            print(X_labeled.shape, X_unlabeled.shape)
-            classifier(np.vstack(X_labeled.values), y_labeled, np.vstack(X_test.values), y_test)
-
-            y_true, y_pred = [], []
-            for _, _, _, y_t, y_p in validation.values():
-                y_true.append(list(y_t.values))
-                y_pred.append(list(y_p.values()))
-                              
+            new_instances = find_new_instances(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name], batch) 
+            val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, class_similarities, col_name, processed_columns)
             
-            acc = 1-hamming_loss(y_true, y_pred)
-            emr = accuracy_score(y_true, y_pred)  
-            print('-'*30)
-            print(f'Exact match ratio : {emr:.2f} ')
-            print(f'Accuracy          : {acc:.2f} ')
-            print('-'*30)
+            # check results after every batch
+            f1_after = binary_classifier(X_labeled_new, y_labeled_new[col_name], X_test, y_test)
+            
+            if f1_after > f1_before:
+                
+                X_labeled, y_labeled = X_labeled_new, y_labeled_new
+                validation.extend(val_new)
+                f1_before = f1_after
+            
+            X_unlabeled, y_unlabeled = X_unlabeled_new, y_unlabeled_new
+            
+            print('Shapes --------------')
+            print(X_labeled.shape, X_unlabeled.shape)
+                
+                
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
