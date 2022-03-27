@@ -8,7 +8,7 @@ implement batched version
     + adding batch_size of item in each iteration, -1 means all, positive integers are batch sizes
    
 iterative process to check improvement
-    only for the affected labels, the labels that are found during the oversampling
+    + only for the affected labels, the labels that are found during the oversampling
     maybe AL can be included
     similarity factor
         each time change threshold with a logic like simulated annealing
