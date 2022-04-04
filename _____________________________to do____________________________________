@@ -3,7 +3,13 @@ balancing mechanism
     + 0.75 quartile
     - more needed
         
-   
+
+
+if update_type == 'increase':
+    similarity_factor = similarity_factor + ((1-similarity_factor)**2) * similarity_factor
+elif update_type == 'decrease':
+    similarity_factor = similarity_factor - ((1-similarity_factor)**2) * similarity_factor
+
 iterative process to check improvement
     + only for the affected labels, the labels that are found during the oversampling
     maybe AL can be included

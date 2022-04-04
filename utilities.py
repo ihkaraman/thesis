@@ -346,10 +346,10 @@ def oversample_dataset_with_threshold_update(num_of_new_instances, X_labeled, y_
        
         print("\033[1m" + '-'*15 + col_name + '-'*15 +"\033[0m")
         print('='*50)
+        
         f1_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
         
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
-        batches = find_batches(batch_size, num_instance)
         
         similarity_factor = similarity_factors[col_name]
         
