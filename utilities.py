@@ -170,6 +170,21 @@ def find_new_instances(X_labeled, X_unlabeled, class_similarity, batch_size):
     return new_instances
 
 
+def find_new_best_instances(X_labeled, X_unlabeled):
+    
+    # calculates all similarities for unlabeled set
+    # sort them according to similarity in descending order
+    all_similarities = {}
+    
+    for idx, instance in X_unlabeled.iteritems():
+        ins_sim = similarities.calculate_similarity_between_vector_and_class(instance, X_labeled)
+        all_similarities[idx] = ins_sim
+    
+    sorted_similarities = {k: v for k, v in sorted(all_similarities.items(), key=lambda item: item[1], reverse=True)}
+    
+    return sorted_similarities
+
+
 def find_similar_columns(instance, X_labeled, y_labeled, other_columns):
     
     other_similarities = {}
@@ -216,6 +231,14 @@ def add_instance(instance_X, instance_index, new_labels, X_labeled, y_labeled, X
 
     return X_labeled, y_labeled, X_unlabeled, y_unlabeled
 
+def update_similarity_factor(similarity_factor, update_type):
+
+    if update_type == 'increase':
+        similarity_factor = similarity_factor + ((1-similarity_factor)**2) * similarity_factor
+    elif update_type == 'decrease':
+        similarity_factor = similarity_factor - ((1-similarity_factor)**2) * similarity_factor
+    
+    return similarity_factor
 
 def prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, class_similarities, col_name, processed_columns):
 # can be improved
@@ -262,7 +285,6 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
         if num_instance <= 0:
             continue
        
-        
         print("\033[1m" + '-'*15 + col_name + '-'*15 +"\033[0m")
         print('='*50)
         f1_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
@@ -277,18 +299,105 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
             
             # check results after every batch
             f1_after = binary_classifier(np.vstack(X_labeled_new.values), y_labeled_new[col_name], np.vstack(X_test.values), y_test[col_name])
-            print('f1 before :', f1_before, ' f1 after :', f1_after, )
+            
             if f1_after > f1_before:
-                print('adding instances ... ')
+                print('adding instances ......  ', 'f1 before :', f1_before, ' f1 after :', f1_after)
                 X_labeled, y_labeled = X_labeled_new, y_labeled_new
                 validation.extend(val_new)
-                f1_before = f1_after
+                # f1_before = f1_after if we assign f1_after to f1_before we may not catch the 
             
             X_unlabeled, y_unlabeled = X_unlabeled_new, y_unlabeled_new
             
-            print('Shapes --------------')
-            print(X_labeled.shape, X_unlabeled.shape)
+    print('Shapes --------------')
+    print(X_labeled.shape, X_unlabeled.shape)            
+               
+    return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
+
+def oversample_dataset_with_threshold_update(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size):
+    
+    # 1. sort required # of new instances
+    # 2. calculate class similarities
+    # 3. iterate over columns that requieres most # of instances to balance with batches
+    # 4. calculate batches accordiing to given batch_size (-1 means no batching)
+    # 5. find batch_size of instances in the unlabeled set by using the similarities
+    # 6. look for other labels that can be assigned to the found instances
+    # 7. the ones that have higher similarity than class similarity are assigned to that class
+    # 8. add the new instances to the labeled instances for X_labeled and y_labeled
+    # 9. remove the new instances from the unlabeled set
+    
+    # giving priority to mostly imbalanced classes
+    num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
+    
+    class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type)
+    
+    similarity_factors = similarities.calculate_similarity_factors(class_similarities)
+            
+    
+    processed_columns = []
+    validation = []
+    
+    for col_name, num_instance in num_of_new_instances.items():
+        
+        processed_columns.append(col_name)
+        
+        # if no need to add instance, skip that column
+        if num_instance <= 0:
+            continue
+       
+        print("\033[1m" + '-'*15 + col_name + '-'*15 +"\033[0m")
+        print('='*50)
+        f1_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
+        
+        indexes = (y_labeled[y_labeled[col_name] == 1]).index
+        batches = find_batches(batch_size, num_instance)
+        
+        similarity_factor = similarity_factors[col_name]
+        
+        sorted_similarities = find_new_best_instances(X_labeled.loc[indexes], X_unlabeled)
+
+        keys, values = list(sorted_similarities.keys()), list(sorted_similarities.values())
+
+        for start_idx in range(0, len(sorted_similarities), batch_size):
+
+            new_instance_keys = keys[start_index:start_index+batch_size]
+            new_instance_values = values[start_index:start_index+batch_size]
+
+            # calculate batch's average similarity
+            avg_batch_sim = sum(new_instance_values)/len(new_instance_values)
+            
+            num_of_failed_iter = 0
+            
+            if avg_batch_sim >= class_similarities[col_name]*similarity_factor:
                 
+                num_of_failed_iter = 0
                 
+                val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = \
+                prepare_new_instances(new_instance_keys, X_labeled, y_labeled, X_unlabeled, y_unlabeled, \
+                                      class_similarities, col_name, processed_columns)
+
+                # check results after every batch
+                f1_after = binary_classifier(np.vstack(X_labeled_new.values), y_labeled_new[col_name], \
+                                             np.vstack(X_test.values), y_test[col_name])
+
+                
+                if f1_after > f1_before:
+                    print('adding instances ......  ', 'f1 before :', f1_before, ' f1 after :', f1_after)
+                    X_labeled, y_labeled = X_labeled_new, y_labeled_new
+                    validation.extend(val_new)
+                    # f1_before = f1_after if we assign f1_after to f1_before we may not catch the 
+                    X_unlabeled, y_unlabeled = X_unlabeled_new, y_unlabeled_new
+
+                    similarity_factor = update_similarity_factor(similarity_factor, 'increase')
+       
+                else:
+                    similarity_factor = update_similarity_factor(similarity_factor, 'decrease')
+            else:
+                num_of_failed_iter += 1
+            
+            if num_of_failed_iter > 2:
+                break          
+            
+    print('Shapes --------------')
+    print(X_labeled.shape, X_unlabeled.shape)            
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 

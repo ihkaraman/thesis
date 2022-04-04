@@ -1,11 +1,8 @@
 balancing mechanism 
-    + instead of averaging the similarities find a safe interval
-    ++ two types of calculation method is implemented
-        average
-        0.75 quartile
-
-implement batched version
-    + adding batch_size of item in each iteration, -1 means all, positive integers are batch sizes
+    + averaging and multiplying with a threshold_factor
+    + 0.75 quartile
+    - more needed
+        
    
 iterative process to check improvement
     + only for the affected labels, the labels that are found during the oversampling
@@ -33,6 +30,8 @@ similairty-distance relation
         a. find norm: d_norm = distance / max(distance)
         b. similarity = 1 - d_norm
 
+stopping condition
+- calculate similarity as average and multiply it with a threshold, this threshold should be defined for every class
 
 notes:
 -during oversampling we calculate class similarities only with labeled set and we use it in each iteration during oversampling
