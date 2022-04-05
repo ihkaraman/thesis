@@ -114,7 +114,7 @@ def calculate_similarity_between_vector_and_class(vec, class_vecs, sim_calculati
 
 # In[ ]:
 
-def calculate_similarity_factors(class_similarities, type_):
+def calculate_similarity_factors(class_similarities):
     
     return {k:(1/v)**0.5 for k,v in class_similarities.items()}
 

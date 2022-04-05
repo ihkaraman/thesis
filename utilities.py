@@ -357,7 +357,7 @@ def oversample_dataset_with_threshold_update(num_of_new_instances, X_labeled, y_
 
         keys, values = list(sorted_similarities.keys()), list(sorted_similarities.values())
 
-        for start_idx in range(0, len(sorted_similarities), batch_size):
+        for start_index in range(0, len(sorted_similarities), batch_size):
 
             new_instance_keys = keys[start_index:start_index+batch_size]
             new_instance_values = values[start_index:start_index+batch_size]
