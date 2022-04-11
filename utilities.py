@@ -77,7 +77,7 @@ def binary_classifier(X_train, y_train, X_test, y_test):
     return f1_score(y_test, preds, average='binary')
     
     
-def multilabel_classifier(X_train, y_train, X_test, y_test):
+def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric='f1-score'):
 
     # class_weights = calculating_class_weights(y_train.values)
     
@@ -98,14 +98,20 @@ def multilabel_classifier(X_train, y_train, X_test, y_test):
     print("\033[1m" + 'Classification Report' + "\033[0m")
     print(classification_report(y_test.values, preds, target_names=list(y_test.columns)))
     print('| '*100)
+    
+    clf_report = classification_report(y_test.values, preds, target_names=list(y_test.columns), output_dict=True)
+    metrics = {col:clf_report[col][success_metric] for col in y_test.columns}  
+        
+    return metrics
 
 
 # In[ ]:
 
 
 def calculate_imb_ratio(y):
-
+    
     class_ratios = (y.sum() / y.shape[0]).values
+        
     return class_ratios
 
 
@@ -129,24 +135,31 @@ def find_batches(batch_size, num_ins):
         return epochs
 
 
-def calculate_balancing_num_instance_binary(n_samples, n_total_samples, balance_ratio=balance_ratio):
+def calculate_balancing_num_instance_binary(n_samples, n_total_samples, balance_ratio=0.5, calculation_type=None, success_metric=0.0):
     
     if n_samples/n_total_samples > balance_ratio:
         print("Be careful! Given balancing ratio is lower than the class' imbalance ratio")
-        
-    return int((n_total_samples*balance_ratio - n_samples)*2)
+    
+    balance_num = int((n_total_samples*balance_ratio - n_samples)*2)
+    
+    if calculation_type=='metric_based':
+        balance_num *= (1-success_metric)
+    
+    return balance_num
 
 
 # In[ ]:
 
 
-def calculate_balancing_num_instance_multiclass(y, balance_ratio):
+def calculate_balancing_num_instance_multiclass(y, balance_ratio, calculation_type, f_scores):
     
     oversampling_counts = {}
     n_samples = y.shape[0]
     
     for col in y.columns:
-        oversampling_counts[col] = calculate_balancing_num_instance_binary(y[col].sum(), n_samples, balance_ratio)
+        f_score = f_scores[col]
+        oversampling_counts[col] = calculate_balancing_num_instance_binary(y[col].sum(), n_samples, balance_ratio, 
+                                                                           calculation_type, f_score)
     
     return oversampling_counts
 
@@ -288,7 +301,7 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
         print("\033[1m" + '-'*15 + col_name + '-'*15 +"\033[0m")
         print('='*50)
         f1_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
-        
+                        
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
         batches = find_batches(batch_size, num_instance)
         

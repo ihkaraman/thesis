@@ -28,13 +28,6 @@ define a stopping condition
 similairty-distance relation 
     -from Applied multivariate statistical analysis
         s = 1/(1+d)
-        d = (2*(1-s))^0.5
-    -s = 1 / d
-    -s = 1 / (d+1)
-    -s = 1 / e^d 
-    -normed
-        a. find norm: d_norm = distance / max(distance)
-        b. similarity = 1 - d_norm
 
 stopping condition
 - calculate similarity as average and multiply it with a threshold, this threshold should be defined for every class

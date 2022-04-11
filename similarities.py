@@ -11,15 +11,19 @@ from scipy.spatial.distance import jensenshannon
 e = 0.00001
 # In[ ]:
 
-def convert_distance_to_metric(distance):
-    
-    # how to convet a distance to a similarity metric
-    # similarity = 1 / distance is a good method?
+def convert_distance_to_similarity(distance):
     
     if distance == 0:
-        distance += e
+        similarity = 1/(1+distance)
         
-    return 1/distance
+    return similarity
+
+def convert_similarity_to_distance(similarity):
+    
+    if similarity == 0:
+        distance = (1/similarity)-1
+        
+    return distance
 
 def cosine_similarity(vec1, vec2):
     norm1 = np.linalg.norm(vec1)
@@ -41,7 +45,7 @@ def minkowski_similarity(u, v, p=2):
     u_v = u - v
     dist = np.linalg.norm(u_v, ord=p)
         
-    return convert_distance_to_metric(dist) #converting a distance to similarity
+    return convert_distance_to_similarity(dist) #converting a distance to similarity
 
 
 # In[ ]:
@@ -50,7 +54,7 @@ def js_similarity(vec1, vec2):
     
     dist = jensenshannon(vec1, vec2)
 
-    return convert_distance_to_metric(dist)
+    return convert_distance_to_similarity(dist)
     
 # In[ ]:
 
