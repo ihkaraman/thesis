@@ -5,6 +5,7 @@
 
 
 import torch
+import random
 import preprocess
 import similarities
 import pandas as pd
@@ -77,8 +78,14 @@ def binary_classifier(X_train, y_train, X_test, y_test):
     return f1_score(y_test, preds, average='binary')
     
     
-def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric='f1-score'):
+def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric):
 
+    '''
+    success_metric:
+        x_y format
+        x: type, [col, single]
+        y: metric, [precision, recall, f1-score]
+    '''
     # class_weights = calculating_class_weights(y_train.values)
     
     # Linear SVM
@@ -100,9 +107,15 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric='f1-s
     print('| '*100)
     
     clf_report = classification_report(y_test.values, preds, target_names=list(y_test.columns), output_dict=True)
-    metrics = {col:clf_report[col][success_metric] for col in y_test.columns}  
+    
+    type_, metric = success_metric.split('_')
+    
+    if type_=='col':
+        output_metric = {col:clf_report[col][metric] for col in y_test.columns}  
+    elif type_=='single':
+        output_metric = clf_report['macro avg'][metric]
         
-    return metrics
+    return output_metric
 
 
 # In[ ]:
@@ -167,7 +180,7 @@ def calculate_balancing_num_instance_multiclass(y, balance_ratio, calculation_ty
 # In[ ]:
 
 
-def find_new_instances(X_labeled, X_unlabeled, class_similarity, batch_size):
+def find_new_instance_batches(X_labeled, X_unlabeled, class_similarity, batch_size):
     
     # finds new instances from unlabeled set 
     # compares vector-class similarity with avg. class_sim to assign labels
@@ -183,19 +196,20 @@ def find_new_instances(X_labeled, X_unlabeled, class_similarity, batch_size):
     return new_instances
 
 
-def find_new_best_instances(X_labeled, X_unlabeled):
+def find_new_instances(X_labeled, X_unlabeled, sort=False):
     
     # calculates all similarities for unlabeled set
-    # sort them according to similarity in descending order
+    # if sort: sort them according to similarity in descending order
     all_similarities = {}
     
     for idx, instance in X_unlabeled.iteritems():
         ins_sim = similarities.calculate_similarity_between_vector_and_class(instance, X_labeled)
         all_similarities[idx] = ins_sim
     
-    sorted_similarities = {k: v for k, v in sorted(all_similarities.items(), key=lambda item: item[1], reverse=True)}
+    if sort:
+        all_similarities = {k: v for k, v in sorted(all_similarities.items(), key=lambda item: item[1], reverse=True)}
     
-    return sorted_similarities
+    return all_similarities
 
 
 def find_similar_columns(instance, X_labeled, y_labeled, other_columns):
@@ -307,7 +321,7 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
         
         for batch in batches:
             
-            new_instances = find_new_instances(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name], batch) 
+            new_instances = find_new_instance_batches(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name], batch) 
             val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, class_similarities, col_name, processed_columns)
             
             # check results after every batch
@@ -366,7 +380,7 @@ def oversample_dataset_with_threshold_update(num_of_new_instances, X_labeled, y_
         
         similarity_factor = similarity_factors[col_name]
         
-        sorted_similarities = find_new_best_instances(X_labeled.loc[indexes], X_unlabeled)
+        sorted_similarities = find_new_instances(X_labeled.loc[indexes], X_unlabeled, sort=True)
 
         keys, values = list(sorted_similarities.keys()), list(sorted_similarities.values())
 
@@ -410,6 +424,125 @@ def oversample_dataset_with_threshold_update(num_of_new_instances, X_labeled, y_
             if num_of_failed_iter > 2:
                 break          
             
+    print('Shapes --------------')
+    print(X_labeled.shape, X_unlabeled.shape)            
+               
+    return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
+
+
+def oversample_dataset_with_threshold_update_and_binary_checking(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size, n_iter):
+    
+    # 1. sort required # of new instances
+    # 2. calculate class similarities
+    # 3. iterate over columns that requieres most # of instances to balance with batches
+    # 4. calculate batches accordiing to given batch_size (-1 means no batching)
+    # 5. find batch_size of instances in the unlabeled set by using the similarities
+    # 6. look for other labels that can be assigned to the found instances
+    # 7. the ones that have higher similarity than class similarity are assigned to that class
+    # 8. add the new instances to the labeled instances for X_labeled and y_labeled
+    # 9. remove the new instances from the unlabeled set
+    
+    # giving priority to mostly imbalanced classes
+    num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
+    
+    class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type)
+    
+    similarity_factors = similarities.calculate_similarity_factors(class_similarities)
+                
+    processed_columns = []
+    validation = []
+    
+    for col_name, num_instance in num_of_new_instances.items():
+        
+        processed_columns.append(col_name)
+        
+        # if no need to add instance, skip that column
+        if num_instance <= 0:
+            continue
+       
+        print("\033[1m" + '-'*15 + col_name + '-'*15 +"\033[0m")
+        print('='*50)
+        
+        
+        indexes = (y_labeled[y_labeled[col_name] == 1]).index
+        
+        similarity_factor = similarity_factors[col_name]
+        
+        all_similarities = find_new_instances(X_labeled.loc[indexes], X_unlabeled, sort=False)
+            
+        iter_num = 0
+        
+        while stopping_condition or iter_num < n_iter:
+                            
+            # filtering the instances that have greater similarity than similarity factor
+            potential_instances = {k:v for k, v in all_similarities.items() if v>class_similarities[col_name]*similarity_factor}
+            
+            if len(potential_instances) == 0:
+                break
+            
+            # shuffling the potential instances
+            potential_instance_keys = potential_instances.keys()
+            random.shuffle(potential_instance_keys)
+            # potential_instances = {k:potential_instances[k] for k in ins_keys}
+            
+            binary_score_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
+            general_score_before = multilabel_classifier(X_labeled, y_labeled, X_test, y_test, success_metric='single_f1-score')
+            
+            candidate_instances = []
+            
+            for idx in potential_instance_keys():
+                
+                !!!
+                instead of below one, add only one instance to labeled set temporarily
+                remove instance from unlabeled set constantly
+                val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = \
+                prepare_new_instances(idx, X_labeled, y_labeled, X_unlabeled, y_unlabeled, \
+                                      class_similarities, col_name, processed_columns)
+                    
+                 - 
+                instance_new_index = max(starting_index, max(X_labeled.index)) + 1
+                instance_X_series = pd.Series([instance_X], index=[instance_new_index])
+                instance_new_labels =pd.DataFrame(new_labels, index=[instance_new_index])
+                # adding new instance to labeled set
+                X_labeled = pd.concat([X_labeled, instance_X_series])
+                y_labeled = pd.concat([y_labeled, instance_new_labels])
+                !!!
+                   
+                # the instances that tried for one column removed from unlabeled set, not removing is an alternative
+                X_unlabeled, y_unlabeled = X_unlabeled_new, y_unlabeled_new
+                    
+                # check results for each instance
+                binary_score_after = binary_classifier(np.vstack(!X_labeled_new.values), !y_labeled_new[col_name], \
+                                             np.vstack(X_test.values), y_test[col_name])
+            
+                if binary_score_after >= binary_score_before:
+                    
+                    candidate_instances.append(idx)
+                    
+                    if len(new_instance_keys) >= batch_size:
+                        
+                        val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = \
+                        prepare_new_instances(new_instance_keys, X_labeled, y_labeled, X_unlabeled, y_unlabeled, \
+                                              class_similarities, col_name, processed_columns)
+                        
+                        general_score_after = multilabel_classifier(X_labeled_new, y_labeled_new, X_test, y_test, success_metric='single_f1-score')
+                        
+                        if general_score_after >= general_score_before:
+                            
+                            print('adding instances ......  ', 'score >  before :', general_score_before, ' after :', general_score_after)
+                            X_labeled, y_labeled = X_labeled_new, y_labeled_new
+                            validation.extend(val_new)
+                            
+                            aşağıdaki update burada mı olmalı?
+                            similarity_factor = update_similarity_factor(similarity_factor, 'increase')  
+                            
+                        else:
+                            aşağıdaki update burada mı olmalı?
+                            similarity_factor = update_similarity_factor(similarity_factor, 'decrease')
+
+                        # emptying the list of candidate isntances
+                        candidate_instances.clear()
+
     print('Shapes --------------')
     print(X_labeled.shape, X_unlabeled.shape)            
                

@@ -26,7 +26,7 @@ define a stopping condition
 - it should be like, I searched all the data and stop if no improvement, or iteration
 
 similairty-distance relation 
-    -from Applied multivariate statistical analysis
+    +from Applied multivariate statistical analysis
         s = 1/(1+d)
 
 stopping condition
