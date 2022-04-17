@@ -127,7 +127,7 @@ def calculate_overall_class_similarities(X, y, sim_calculation_type):
     
     class_similarities = {}
     for col in y.columns:
-        indexes = (y[col] == 1).index
+        indexes = y[y[col] == 1].index
         class_similarities[col] = calculate_within_class_similarity(X.loc[indexes], sim_calculation_type) 
         
     return class_similarities

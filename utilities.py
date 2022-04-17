@@ -19,6 +19,7 @@ from sklearn.multiclass import OneVsRestClassifier
 
 
 balance_ratio = 0.5
+satisfying_threshold = 0.9
 random_state = 1
 starting_index = 100000
 np.random.seed(random_state)
@@ -153,26 +154,26 @@ def calculate_balancing_num_instance_binary(n_samples, n_total_samples, balance_
     if n_samples/n_total_samples > balance_ratio:
         print("Be careful! Given balancing ratio is lower than the class' imbalance ratio")
     
-    balance_num = int((n_total_samples*balance_ratio - n_samples)*2)
+    balance_num = (n_total_samples*balance_ratio - n_samples)*2
     
     if calculation_type=='metric_based':
         balance_num *= (1-success_metric)
     
-    return balance_num
+    return int(balance_num)
 
 
 # In[ ]:
 
 
-def calculate_balancing_num_instance_multiclass(y, balance_ratio, calculation_type, f_scores):
+def calculate_balancing_num_instance_multiclass(y, balance_ratio, calculation_type, s_metrics):
     
     oversampling_counts = {}
     n_samples = y.shape[0]
     
     for col in y.columns:
-        f_score = f_scores[col]
+        s_metric = s_metrics[col]
         oversampling_counts[col] = calculate_balancing_num_instance_binary(y[col].sum(), n_samples, balance_ratio, 
-                                                                           calculation_type, f_score)
+                                                                           calculation_type, s_metric)
     
     return oversampling_counts
 
@@ -446,9 +447,9 @@ def oversample_dataset_with_threshold_update_and_binary_checking(num_of_new_inst
     num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
     
     class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type)
-    
+    print('class_similarities : ', class_similarities)
     similarity_factors = similarities.calculate_similarity_factors(class_similarities)
-                
+    print('similarity_factors : ', similarity_factors)
     processed_columns = []
     validation = []
     
@@ -459,8 +460,8 @@ def oversample_dataset_with_threshold_update_and_binary_checking(num_of_new_inst
         # if no need to add instance, skip that column
         if num_instance <= 0:
             continue
-       
-        print("\033[1m" + '-'*15 + col_name + '-'*15 +"\033[0m")
+        
+        print("\033[1m" + '-'*int(25-len(col_name)/2) + col_name + '-'*int(25-len(col_name)/2) +"\033[0m")
         print('='*50)
         
         
@@ -469,19 +470,23 @@ def oversample_dataset_with_threshold_update_and_binary_checking(num_of_new_inst
         similarity_factor = similarity_factors[col_name]
         
         all_similarities = find_new_instances(X_labeled.loc[indexes], X_unlabeled, sort=False)
-            
+        print('all_similarities : ', all_similarities)  
         iter_num = 0
         
+        stopping_condition = True
+        
         while stopping_condition or iter_num < n_iter:
-                            
+              
+            print(iter_num, ' iteration ...')              
             # filtering the instances that have greater similarity than similarity factor
             potential_instances = {k:v for k, v in all_similarities.items() if v>class_similarities[col_name]*similarity_factor}
             
+            print(len(potential_instances))
             if len(potential_instances) == 0:
                 break
             
             # shuffling the potential instances
-            potential_instance_keys = potential_instances.keys()
+            potential_instance_keys = list(potential_instances.keys())
             random.shuffle(potential_instance_keys)
             # potential_instances = {k:potential_instances[k] for k in ins_keys}
             
@@ -491,53 +496,43 @@ def oversample_dataset_with_threshold_update_and_binary_checking(num_of_new_inst
             candidate_instances = []
             
             for idx in potential_instance_keys():
-                
-                !!!
-                instead of below one, add only one instance to labeled set temporarily
-                remove instance from unlabeled set constantly
-                val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = \
-                prepare_new_instances(idx, X_labeled, y_labeled, X_unlabeled, y_unlabeled, \
-                                      class_similarities, col_name, processed_columns)
-                    
-                 - 
-                instance_new_index = max(starting_index, max(X_labeled.index)) + 1
-                instance_X_series = pd.Series([instance_X], index=[instance_new_index])
-                instance_new_labels =pd.DataFrame(new_labels, index=[instance_new_index])
-                # adding new instance to labeled set
-                X_labeled = pd.concat([X_labeled, instance_X_series])
-                y_labeled = pd.concat([y_labeled, instance_new_labels])
-                !!!
-                   
-                # the instances that tried for one column removed from unlabeled set, not removing is an alternative
-                X_unlabeled, y_unlabeled = X_unlabeled_new, y_unlabeled_new
-                    
-                # check results for each instance
-                binary_score_after = binary_classifier(np.vstack(!X_labeled_new.values), !y_labeled_new[col_name], \
-                                             np.vstack(X_test.values), y_test[col_name])
+                                    
+                # check results for each instance,
+                print('____shapes____')
+                print(X_labeled.values.shape, X_labeled.values.append(X_unlabeled.loc[idx]).shape)
+                print(y_labeled[col_name].values.shape, y_labeled[col_name].values.append([1]).shape)
+                binary_score_after = binary_classifier(np.vstack(X_labeled.values.append(X_unlabeled.loc[idx])),
+                                                                 y_labeled[col_name].values,
+                                                                 np.vstack(X_test.values), y_test[col_name])
             
                 if binary_score_after >= binary_score_before:
                     
+                    if binary_score_after > satisfying_threshold:
+                        stopping_condition = False
+                        
                     candidate_instances.append(idx)
                     
-                    if len(new_instance_keys) >= batch_size:
+                    if len(candidate_instances) >= batch_size:
                         
                         val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = \
-                        prepare_new_instances(new_instance_keys, X_labeled, y_labeled, X_unlabeled, y_unlabeled, \
+                        prepare_new_instances(candidate_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
                                               class_similarities, col_name, processed_columns)
                         
-                        general_score_after = multilabel_classifier(X_labeled_new, y_labeled_new, X_test, y_test, success_metric='single_f1-score')
+                        general_score_after = multilabel_classifier(X_labeled_new, y_labeled_new, X_test, y_test, 
+                                                                    success_metric='single_f1-score')
                         
                         if general_score_after >= general_score_before:
                             
                             print('adding instances ......  ', 'score >  before :', general_score_before, ' after :', general_score_after)
                             X_labeled, y_labeled = X_labeled_new, y_labeled_new
+                            X_unlabeled, y_unlabeled = X_unlabeled_new, y_unlabeled_new
                             validation.extend(val_new)
                             
-                            aşağıdaki update burada mı olmalı?
+                            # increasing similarity factor
                             similarity_factor = update_similarity_factor(similarity_factor, 'increase')  
                             
                         else:
-                            aşağıdaki update burada mı olmalı?
+                            # decreasing similarity factor
                             similarity_factor = update_similarity_factor(similarity_factor, 'decrease')
 
                         # emptying the list of candidate isntances
