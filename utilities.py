@@ -197,7 +197,7 @@ def find_new_instance_batches(X_labeled, X_unlabeled, class_similarity, batch_si
     return new_instances
 
 
-def find_new_instances(X_labeled, X_unlabeled, sort=False):
+def calculate_all_similarities(X_labeled, X_unlabeled, sort=False):
     
     # calculates all similarities for unlabeled set
     # if sort: sort them according to similarity in descending order
@@ -234,6 +234,24 @@ def find_other_labels(instance_X, X_labeled, y_labeled, class_similarities, col_
 
      ### finding other labels
     other_columns = [i for i in y_labeled.columns if i not in processed_columns]
+    other_similarities = find_similar_columns(instance_X, X_labeled, y_labeled, other_columns)
+    for col, sim in other_similarities.items():
+        if sim > class_similarities[col]:
+            new_labels[col] = 1
+
+    return new_labels
+
+def find_all_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name):
+                
+    # defining all labels as 0s
+    new_labels = {c:0 for c in y_labeled.columns}
+    # changing col_name's label as 1
+    new_labels[col_name] = 1
+
+     ### finding other labels
+    other_columns = y_labeled.columns
+    other_columns = other_columns.remove(col_name)
+    
     other_similarities = find_similar_columns(instance_X, X_labeled, y_labeled, other_columns)
     for col, sim in other_similarities.items():
         if sim > class_similarities[col]:
@@ -285,17 +303,7 @@ def prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_un
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled
         
         
-def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size):
-    
-    # 1. sort required # of new instances
-    # 2. calculate class similarities
-    # 3. iterate over columns that requieres most # of instances to balance with batches
-    # 4. calculate batches accordiing to given batch_size (-1 means no batching)
-    # 5. find batch_size of instances in the unlabeled set by using the similarities
-    # 6. look for other labels that can be assigned to the found instances
-    # 7. the ones that have higher similarity than class similarity are assigned to that class
-    # 8. add the new instances to the labeled instances for X_labeled and y_labeled
-    # 9. remove the new instances from the unlabeled set
+def oversample_dataset_v1(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size):
     
     # giving priority to mostly imbalanced classes
     num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
@@ -341,18 +349,8 @@ def oversample_dataset(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, 
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
 
-def oversample_dataset_with_threshold_update(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size):
-    
-    # 1. sort required # of new instances
-    # 2. calculate class similarities
-    # 3. iterate over columns that requieres most # of instances to balance with batches
-    # 4. calculate batches accordiing to given batch_size (-1 means no batching)
-    # 5. find batch_size of instances in the unlabeled set by using the similarities
-    # 6. look for other labels that can be assigned to the found instances
-    # 7. the ones that have higher similarity than class similarity are assigned to that class
-    # 8. add the new instances to the labeled instances for X_labeled and y_labeled
-    # 9. remove the new instances from the unlabeled set
-    
+def oversample_dataset_v2(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size):
+        
     # giving priority to mostly imbalanced classes
     num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
     
@@ -381,7 +379,7 @@ def oversample_dataset_with_threshold_update(num_of_new_instances, X_labeled, y_
         
         similarity_factor = similarity_factors[col_name]
         
-        sorted_similarities = find_new_instances(X_labeled.loc[indexes], X_unlabeled, sort=True)
+        sorted_similarities = calculate_all_similarities(X_labeled.loc[indexes], X_unlabeled, sort=True)
 
         keys, values = list(sorted_similarities.keys()), list(sorted_similarities.values())
 
@@ -431,17 +429,8 @@ def oversample_dataset_with_threshold_update(num_of_new_instances, X_labeled, y_
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
 
 
-def oversample_dataset_with_threshold_update_and_binary_checking(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size, n_iter):
+def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size, n_iter):
     
-    # 1. sort required # of new instances
-    # 2. calculate class similarities
-    # 3. iterate over columns that requieres most # of instances to balance with batches
-    # 4. calculate batches accordiing to given batch_size (-1 means no batching)
-    # 5. find batch_size of instances in the unlabeled set by using the similarities
-    # 6. look for other labels that can be assigned to the found instances
-    # 7. the ones that have higher similarity than class similarity are assigned to that class
-    # 8. add the new instances to the labeled instances for X_labeled and y_labeled
-    # 9. remove the new instances from the unlabeled set
     
     # giving priority to mostly imbalanced classes
     num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
@@ -469,7 +458,7 @@ def oversample_dataset_with_threshold_update_and_binary_checking(num_of_new_inst
         
         similarity_factor = similarity_factors[col_name]
         
-        all_similarities = find_new_instances(X_labeled.loc[indexes], X_unlabeled, sort=False)
+        all_similarities = calculate_all_similarities(X_labeled.loc[indexes], X_unlabeled, sort=False)
         print('all_similarities : ', all_similarities)  
         iter_num = 0
         
@@ -538,6 +527,84 @@ def oversample_dataset_with_threshold_update_and_binary_checking(num_of_new_inst
                         # emptying the list of candidate isntances
                         candidate_instances.clear()
 
+    print('Shapes --------------')
+    print(X_labeled.shape, X_unlabeled.shape)            
+               
+    return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
+
+
+def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size, n_iter, balance_ratio, success_metric):
+    
+     
+    class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type)
+    print('class_similarities : ', class_similarities)
+    similarity_factors = similarities.calculate_similarity_factors(class_similarities)
+    print('similarity_factors : ', similarity_factors)
+    
+    validation = []
+    
+    # an initial classification
+    add multimetric to multilabel classification and remove the second one
+    s_metric = multilabel_classifier(np.vstack(X_labeled), y_labeled, np.vstack(X_test), y_test, 
+                                               success_metric=success_metric)
+    
+    general_score_before = multilabel_classifier(X_labeled, y_labeled, X_test, y_test, success_metric='single_f1-score')
+    
+    iter_num = 0
+    stopping_condition = True
+    while stopping_condition or iter_num < n_iter:
+        
+        num_of_new_instances = calculate_balancing_num_instance_multiclass(y_labeled, balance_ratio, 
+                                                                                 calculation_type='metric_based', 
+                                                                                 s_metrics=s_metric)
+        # calculating selection probabilities by num of required instances
+        selection_probabilities = {k:max(0, v/sum(num_of_new_instances.values())) for k,v in num_of_new_instances.items()}
+        # normalizing probabilities
+        selection_probabilities = {k:v/sum(selection_probabilities.values()) for k,v in selection_probabilities.items()}
+        # selecting a random class with selection_probabilities
+        col_name = random.choices(list(selection_probabilities.keys()), weights=selection_probabilities.values())[0]
+        
+        print("\033[1m" + '-'*int(25-len(col_name)/2) + col_name + '-'*int(25-len(col_name)/2) +"\033[0m")
+        
+        # find the indexes that belong to the chosen class
+        indexes = (y_labeled[y_labeled[col_name] == 1]).index
+        
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # should we choose the instances by utilizing binary classifier or just similarity or randomly?
+        # binary_score_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
+        # find new instances from Unlabeled set by using similarity and similarity factor
+        new_instances = find_new_instance_batches(X_labeled.loc[indexes], X_unlabeled, 
+                                                     class_similarities[col_name]*similarity_factors[col_name], batch_size)
+        print('new_instances : ', new_instances)  
+                
+        val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = \
+        prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
+                              class_similarities, col_name, [col_name])
+        
+        general_score_after = multilabel_classifier(X_labeled_new, y_labeled_new, X_test, y_test, 
+                                                    success_metric='single_f1-score')
+        
+        if general_score_after >= general_score_before:
+            
+            print('adding instances ......  ', 'score >  before :', general_score_before, ' after :', general_score_after)
+            X_labeled, y_labeled = X_labeled_new, y_labeled_new
+            validation.extend(val_new)
+            
+            # increasing similarity factor
+            similarity_factors[col_name] = update_similarity_factor(similarity_factors[col_name], 'increase')  
+            
+            add multimetric to multilabel classification and remove the second one
+            s_metric = multilabel_classifier(np.vstack(X_labeled), y_labeled, np.vstack(X_test), y_test, 
+                                                       success_metric=success_metric)
+            
+            
+        else:
+            # decreasing similarity factor
+            similarity_factors[col_name] = update_similarity_factor(similarity_factors[col_name], 'decrease')
+        
+        X_unlabeled, y_unlabeled = X_unlabeled_new, y_unlabeled_new
+        iter_num += 1
+           
     print('Shapes --------------')
     print(X_labeled.shape, X_unlabeled.shape)            
                

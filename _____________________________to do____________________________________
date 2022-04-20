@@ -1,33 +1,28 @@
-balancing mechanism 
-    + averaging and multiplying with a threshold_factor
-    + 0.75 quartile
-    - more needed
-        
-
-
-if update_type == 'increase':
-    similarity_factor = similarity_factor + ((1-similarity_factor)**2) * similarity_factor
-elif update_type == 'decrease':
-    similarity_factor = similarity_factor - ((1-similarity_factor)**2) * similarity_factor
-
-iterative process to check improvement
-    + only for the affected labels, the labels that are found during the oversampling
-    maybe AL can be included
-    similarity factor
-        each time change threshold with a logic like simulated annealing
-        threshold can be tuned with with the results of the iterative classifier
+TO DO -------------------------------------------------------------
+update multilabel_classifier for taking multiple metrics
+    it can take multimetrics and returns both
     
+find the most effective embedding method and add to the algorithm
+  
 try different similarity metrics
 
-find the most effective embedding method
+sınıf içi similarity hesaplarken:
+    bütün sınıfı değerlendirmek yerine sadece kaliteli instance ları değerlendirsek?
+        kaliteli instance ları nasıl bulacağız?
+
+sadece similarity yeterli mi?
+    diğer sınıflara olan uzaklağa da bakmak gerekli mi?
+    diğer sınıflara ya yakın olsun? ya da oldukça uzak. ortada bir yerde olmasın
+
+new instance bulurken 
+    en yüksek similarity e sahip olan yerine overall iyiliğe bakılabilir mi?
 
 define a stopping condition
 - now num of req instances to balance a class is calculated and split into batches but a batch is added if it improves the f1, it may not add instance
 - it should be like, I searched all the data and stop if no improvement, or iteration
 
-similairty-distance relation 
-    +from Applied multivariate statistical analysis
-        s = 1/(1+d)
+diğer sınıfların labellarını bulurken sadece class_similarity üzerinden bir kıyaslama yapılıyor, threshold ile çarpım yapılmıyor
+    deneme yaparken değiştir, threshold u ekle
 
 stopping condition
 - calculate similarity as average and multiply it with a threshold, this threshold should be defined for every class
@@ -38,6 +33,22 @@ recalculating it in each iteration after new instances are added may help!
 
 
 
+
+
+DONE ---------------------------------------------------------------------------------------
+
+if update_type == 'increase':
+    similarity_factor = similarity_factor + ((1-similarity_factor)**2) * similarity_factor
+elif update_type == 'decrease':
+    similarity_factor = similarity_factor - ((1-similarity_factor)**2) * similarity_factor
+
+balancing mechanism 
+    + averaging and multiplying with a threshold_factor
+    + 0.75 quartile
+
+similairty-distance relation 
+    +from Applied multivariate statistical analysis
+        s = 1/(1+d)
 Parameters
     calculation_type - category
         'average' : calculates avg. similarity
