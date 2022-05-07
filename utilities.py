@@ -6,6 +6,7 @@
 
 import torch
 import random
+import openai
 import preprocess
 import similarities
 import pandas as pd
@@ -38,9 +39,19 @@ def read_data(path):
 
 def vectorize_data(text, model_name='stsb-roberta-large'):
     
-    model = SentenceTransformer(model_name)
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    vectors = model.encode(text, convert_to_tensor=False, device=device)
+    if model_name in huggingface:
+        
+        model = SentenceTransformer(model_name)
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        vectors = model.encode(text, convert_to_tensor=False, device=device)
+        vectors = pd.Series([np.squeeze(i) for i in vectors], index=text.index)
+        
+    elif model_name in openai:
+        
+        import config
+        openai.api_key = config.openai_api_key
+        
+        
     
     return vectors
 

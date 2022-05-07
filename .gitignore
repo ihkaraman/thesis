@@ -4,3 +4,4 @@ __pycache__/similarities.cpython-38.pyc
 *.pyc
 *.data
 data/GoEmotions/
+config.py

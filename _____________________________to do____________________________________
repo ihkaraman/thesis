@@ -1,11 +1,14 @@
 TO DO -------------------------------------------------------------
-update multilabel_classifier for taking multiple metrics
+
+- find the best embedding method for optimal similarity for each dataset
+    - try open.ai embeddings
+    - fine-tune huggingface embeddings
+- integrate embedding fine-tuning to main algorithm
+- find the best similarity method
+    - document the experiments
+- update multilabel_classifier for taking multiple metrics
     it can take multimetrics and returns both
     
-find the most effective embedding method and add to the algorithm
-  
-try different similarity metrics
-
 sınıf içi similarity hesaplarken:
     bütün sınıfı değerlendirmek yerine sadece kaliteli instance ları değerlendirsek?
         kaliteli instance ları nasıl bulacağız?
@@ -24,13 +27,72 @@ define a stopping condition
 diğer sınıfların labellarını bulurken sadece class_similarity üzerinden bir kıyaslama yapılıyor, threshold ile çarpım yapılmıyor
     deneme yaparken değiştir, threshold u ekle
 
-stopping condition
-- calculate similarity as average and multiply it with a threshold, this threshold should be defined for every class
 
 notes:
 -during oversampling we calculate class similarities only with labeled set and we use it in each iteration during oversampling
 recalculating it in each iteration after new instances are added may help!
 
+
+
+
+preprocessing
+vectorization - converting text to numeric
+    tfidf
+    Word2vec
+    glove
+    Bert (https://www.kdnuggets.com/2022/01/finetuning-bert-tweets-classification-ft-hugging-face.html)
+    Fastext
+    Elmo
+    XLNet
+    Transformers (https://pub.towardsai.net/text-classification-using-transformers-a2c6b3395ce3)
+Reduce the dimensions
+    Principal Component Analysis
+    Singular Value Decomposition
+    Latent Semantic Indexing
+    Pooling
+    multi-dimensional scaling
+calculate imbalanced ratio and find an oversampling ratio
+oversample the imbalanced dataset using unlabeled data
+    define a similarity function
+(extension) define a strategy to choose unlabeled instances wisely to reduce computation time
+    clustering?
+    LDA
+    Non-negative Matrix Factorization
+    K-NN based graph approach (2 paper’s approaches)
+it should be trained to maximize the within-class similarity while minimizing between-class similarity using labeled data using the labeled data
+using the defined similarity function calculate similarity for each unlabeled instance of each class
+define a similarity function
+similarity functions for vectors
+    Measurement of Text Similarity: A Survey: a very detailed survey of similarity functions that are used for text data
+    cosine similarity
+    minkowski family (euclidean, manhattan)
+    hamming distance
+    Jaccard index
+    Sorensen-dice index
+    KL divergence
+    Jensen–Shannon divergence with LDA
+    Wasserstein distance
+    SMTP 
+    word mover’s distance
+to each labeled instance (possible to create a confidence)
+take the average of the similarity
+take the min max average and std and decide using these
+to each class centroids (generalization)
+use all instances
+use only the instances that are similar to each other to ensure data confidence (excluding outliers)
+if the similarity exceeds some defined threshold assign them to related classes
+train a classifier and look for an improvement
+
+clustering approach
+does one vs rest classifier work?
+if it works use self-supervised methods
+Train a final classifier with oversampled data
+
+Experimentation with different datasets
+ANOVA for parameters to select important parameters
+Tune important parameters to enhance performance
+Compare the two cases to show the improvement
+Compare with different solutions?
 
 
 
