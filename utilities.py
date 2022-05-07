@@ -1,31 +1,29 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 import torch
 import random
-import openai
+import parameters
 import preprocess
 import similarities
 import pandas as pd
 import numpy as np
-
+import matplotlib.pyplot as plt
 from sklearn.svm import LinearSVC
-from sentence_transformers import util, SentenceTransformer
+
 from sklearn.metrics import hamming_loss, accuracy_score, f1_score, classification_report
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.multiclass import OneVsRestClassifier
 
 
-balance_ratio = 0.5
-satisfying_threshold = 0.9
-random_state = 1
-starting_index = 100000
+
+balance_ratio = parameters.balance_ratio
+satisfying_threshold = parameters.satisfying_threshold
+random_state = parameters.random_state
+starting_index = parameters.starting_index
+metric_weighting_type = parameter.metric_weighting_type
 np.random.seed(random_state)
 
-# In[ ]:
 
 
 def read_data(path):
@@ -33,30 +31,49 @@ def read_data(path):
     df['text'] = df['text'].apply(preprocess.preprocess_text)
     return df
 
-
-# In[ ]:
-
-
 def vectorize_data(text, model_name='stsb-roberta-large'):
-    
-    if model_name in huggingface:
-        
+           
+    if model_name in parameters.huggingface_embeddings:
+          
+        from sentence_transformers import SentenceTransformer
         model = SentenceTransformer(model_name)
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        vectors = model.encode(text, convert_to_tensor=False, device=device)
-        vectors = pd.Series([np.squeeze(i) for i in vectors], index=text.index)
+        vectors = model.encode(list(text), convert_to_tensor=False, device=device)
         
-    elif model_name in openai:
+    elif model_name in parameters.openai_embeddings:
         
+        import openai
         import config
         openai.api_key = config.openai_api_key
+        vectors = openai.Embedding.create(input = list(text), engine=model_name)
+        vectors = [vec['embedding'] for vec in vectors['data']]
         
+    else:
+        assert False, 'Undefined embedding type!'
         
-    
+    if type(text)== pd.core.series.Series: 
+        vectors = pd.Series([np.squeeze(i) for i in vectors], index=text.index)
+        
     return vectors
 
 
-# In[ ]:
+def visualize_data(X, typ='pca'):
+    
+    matrix = np.array([np.squeeze(i) for i in X])
+    
+    if typ == 'pca':
+        from sklearn.decomposition import PCA
+        pca = PCA(n_components=2)
+        X_ = pca.fit_transform(X)
+    elif type == 'tsn':
+        from sklearn.manifold import TSNE
+        tsne = TSNE(n_components=2, random_state=42, init='random', learning_rate='auto')
+        X_ = tsne.fit_transform(matrix)
+    
+    x = X_[:,0]
+    y = X_[:,1]
+    plt.scatter(x, y)
+    plt.title("2d Visualization")
 
 
 def calculating_class_weights(y_true):
@@ -68,8 +85,6 @@ def calculating_class_weights(y_true):
             # weights[i] = compute_class_weight('balanced', [0.,1.], y_true[:, i])))
         return weights
 
-
-# In[ ]:
 
 def binary_classifier(X_train, y_train, X_test, y_test):
 
@@ -88,8 +103,8 @@ def binary_classifier(X_train, y_train, X_test, y_test):
     #print(classification_report(y_test, preds))
     
     return f1_score(y_test, preds, average='binary')
-    
-    
+ 
+      
 def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric):
 
     '''
@@ -120,17 +135,23 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric):
     
     clf_report = classification_report(y_test.values, preds, target_names=list(y_test.columns), output_dict=True)
     
-    type_, metric = success_metric.split('_')
     
-    if type_=='col':
-        output_metric = {col:clf_report[col][metric] for col in y_test.columns}  
-    elif type_=='single':
-        output_metric = clf_report['macro avg'][metric]
+    multi-metric yap
+    if type(success_metric) == str:
         
+        type_, metric = success_metric.split('_')
+    
+        if type_=='col':
+            output_metric = {col:clf_report[col][metric] for col in y_test.columns}  
+        elif type_=='single':
+            output_metric = clf_report[metric_weighting_type][metric]
+            
+        return output_metric
+    else:
+        for metric in success_metric:
+            
+            
     return output_metric
-
-
-# In[ ]:
 
 
 def calculate_imb_ratio(y):
@@ -139,8 +160,6 @@ def calculate_imb_ratio(y):
         
     return class_ratios
 
-
-# In[ ]:
 
 def find_batches(batch_size, num_ins):
     
@@ -173,9 +192,6 @@ def calculate_balancing_num_instance_binary(n_samples, n_total_samples, balance_
     return int(balance_num)
 
 
-# In[ ]:
-
-
 def calculate_balancing_num_instance_multiclass(y, balance_ratio, calculation_type, s_metrics):
     
     oversampling_counts = {}
@@ -187,9 +203,6 @@ def calculate_balancing_num_instance_multiclass(y, balance_ratio, calculation_ty
                                                                            calculation_type, s_metric)
     
     return oversampling_counts
-
-
-# In[ ]:
 
 
 def find_new_instance_batches(X_labeled, X_unlabeled, class_similarity, batch_size):
@@ -252,6 +265,7 @@ def find_other_labels(instance_X, X_labeled, y_labeled, class_similarities, col_
 
     return new_labels
 
+
 def find_all_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name):
                 
     # defining all labels as 0s
@@ -288,6 +302,7 @@ def add_instance(instance_X, instance_index, new_labels, X_labeled, y_labeled, X
 
     return X_labeled, y_labeled, X_unlabeled, y_unlabeled
 
+
 def update_similarity_factor(similarity_factor, update_type):
 
     if update_type == 'increase':
@@ -297,8 +312,9 @@ def update_similarity_factor(similarity_factor, update_type):
     
     return similarity_factor
 
+
 def prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, class_similarities, col_name, processed_columns):
-# can be improved
+    # can be improved
     validation = []
     
     for instance_index in new_instances:
@@ -359,6 +375,7 @@ def oversample_dataset_v1(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     print(X_labeled.shape, X_unlabeled.shape)            
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
+
 
 def oversample_dataset_v2(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size):
         
@@ -543,7 +560,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
 
-
+''
 def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size, n_iter, balance_ratio, success_metric):
     
      
@@ -620,3 +637,4 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     print(X_labeled.shape, X_unlabeled.shape)            
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
+'''
