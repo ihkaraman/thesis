@@ -49,7 +49,7 @@ def vectorize_data(text, model_name='stsb-roberta-large'):
         vectors = [vec['embedding'] for vec in vectors['data']]
         
     else:
-        assert False, 'Undefined embedding type!'
+        raise ValueError('Undefined embedding type!')
         
     if type(text)== pd.core.series.Series: 
         vectors = pd.Series([np.squeeze(i) for i in vectors], index=text.index)
@@ -211,7 +211,7 @@ def calculate_balancing_num_instance_binary(n_samples, n_total_samples, balance_
     
     if calculation_type=='metric_based':
         if success_metric > 1.0 or success_metric < 0.0 :
-            assert False, 'Success metric should be between 0 and 1 !'
+            raise ValueError('Success metric should be between 0 and 1 !') 
         balance_num *= (1-success_metric)
     
     return int(balance_num)
