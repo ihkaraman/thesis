@@ -21,7 +21,7 @@ balance_ratio = parameters.balance_ratio
 satisfying_threshold = parameters.satisfying_threshold
 random_state = parameters.random_state
 starting_index = parameters.starting_index
-metric_weighting_type = parameter.metric_weighting_type
+metric_weighting_type = parameters.metric_weighting_type
 np.random.seed(random_state)
 
 
@@ -103,9 +103,21 @@ def binary_classifier(X_train, y_train, X_test, y_test):
     #print(classification_report(y_test, preds))
     
     return f1_score(y_test, preds, average='binary')
- 
+
+
+def metric_function(success_metric, clf_report, y_test):
+    
+    type_, metric = success_metric.split('_')
+
+    if type_=='col':
+        output_metric = {col:clf_report[col][metric] for col in y_test.columns}  
+    elif type_=='single':
+        output_metric = clf_report[metric_weighting_type][metric]
+        
+    return output_metric
+
       
-def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric):
+def multilabel_classifier(X_train, y_train, X_test, y_test, classifier_object, success_metric):
 
     '''
     success_metric:
@@ -116,41 +128,52 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric):
     # class_weights = calculating_class_weights(y_train.values)
     
     # Linear SVM
-    model = OneVsRestClassifier(LinearSVC(class_weight='balanced'), n_jobs=-1)
+    model = OneVsRestClassifier(classifier_object, n_jobs=-1)
     model.fit(X_train, y_train.values)
-    preds = model.predict(X_test)
+    train_preds = model.predict(X_train)
+    test_preds = model.predict(X_test)
+    
+    hamLoss_train = hamming_loss(y_train.values, train_preds)
+    hamLoss_test = hamming_loss(y_test.values, test_preds)
+    acc_score_train = accuracy_score(y_train.values, train_preds)
+    acc_score_test = accuracy_score(y_test.values, test_preds)  
+    clf_report_train = classification_report(y_train.values, train_preds, target_names=list(y_train.columns), output_dict=True)  
+    clf_report_test = classification_report(y_test.values, test_preds, target_names=list(y_test.columns), output_dict=True)  
+    f1_score_train = clf_report_train[metric_weighting_type]['f1-score']
+    f1_score_test = clf_report_test[metric_weighting_type]['f1-score']
     
     print('| '*50)
     print("\033[1m" + 'Multilabel Classifier Results' + "\033[0m")
-    print("\033[1m" + 'LinearSVM' + "\033[0m")
+    print("\033[1m" + type(classifier_object).__name__ + "\033[0m")
     print('-'*30)
-    hamLoss = hamming_loss(y_test.values, preds)
-    print('hamLoss: {:.2f}'.format(hamLoss))
-    acc_score = accuracy_score(y_test.values, preds)
-    print('Exact Match Ratio: {:.2f}'.format(acc_score))
+    print('Hamming Loss')
+    print(f'Training : {hamLoss_train:.2f}')
+    print(f'Test     : {hamLoss_test:.2f}')
+    print('Exact Match Ratio')
+    print(f'Training : {acc_score_train:.2f}')
+    print(f'Test     : {acc_score_test:.2f}')
+    print('Macro F1-Score')
+    print(f'Training : {f1_score_train:.2f}')
+    print(f'Test     : {f1_score_test:.2f}')
     print('-'*30)
     print("\033[1m" + 'Classification Report' + "\033[0m")
-    print(classification_report(y_test.values, preds, target_names=list(y_test.columns)))
+    print(classification_report(y_test.values, test_preds, target_names=list(y_test.columns)))
     print('| '*100)
     
-    clf_report = classification_report(y_test.values, preds, target_names=list(y_test.columns), output_dict=True)
     
     
-    multi-metric yap
     if type(success_metric) == str:
         
-        type_, metric = success_metric.split('_')
-    
-        if type_=='col':
-            output_metric = {col:clf_report[col][metric] for col in y_test.columns}  
-        elif type_=='single':
-            output_metric = clf_report[metric_weighting_type][metric]
+        output_metric = metric_function(success_metric, clf_report_test, y_test)
             
         return output_metric
-    else:
+    
+    elif type(success_metric) == list:
+        
+        output_metric = []
         for metric in success_metric:
-            
-            
+            output_metric.append(metric_function(metric, clf_report_test, y_test))
+                      
     return output_metric
 
 
@@ -187,6 +210,8 @@ def calculate_balancing_num_instance_binary(n_samples, n_total_samples, balance_
     balance_num = (n_total_samples*balance_ratio - n_samples)*2
     
     if calculation_type=='metric_based':
+        if success_metric > 1.0 or success_metric < 0.0 :
+            assert False, 'Success metric should be between 0 and 1 !'
         balance_num *= (1-success_metric)
     
     return int(balance_num)
@@ -560,7 +585,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
 
-''
+
 def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size, n_iter, balance_ratio, success_metric):
     
      
@@ -572,9 +597,8 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     validation = []
     
     # an initial classification
-    add multimetric to multilabel classification and remove the second one
-    s_metric = multilabel_classifier(np.vstack(X_labeled), y_labeled, np.vstack(X_test), y_test, 
-                                               success_metric=success_metric)
+    col_metrics, general_score_before = multilabel_classifier(np.vstack(X_labeled), y_labeled, np.vstack(X_test), y_test, 
+                                               success_metric=[success_metric, 'single_f1-score'])
     
     general_score_before = multilabel_classifier(X_labeled, y_labeled, X_test, y_test, success_metric='single_f1-score')
     
@@ -584,7 +608,7 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         
         num_of_new_instances = calculate_balancing_num_instance_multiclass(y_labeled, balance_ratio, 
                                                                                  calculation_type='metric_based', 
-                                                                                 s_metrics=s_metric)
+                                                                                 s_metrics=col_metrics)
         # calculating selection probabilities by num of required instances
         selection_probabilities = {k:max(0, v/sum(num_of_new_instances.values())) for k,v in num_of_new_instances.items()}
         # normalizing probabilities
@@ -597,9 +621,6 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         # find the indexes that belong to the chosen class
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
         
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # should we choose the instances by utilizing binary classifier or just similarity or randomly?
-        # binary_score_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
         # find new instances from Unlabeled set by using similarity and similarity factor
         new_instances = find_new_instance_batches(X_labeled.loc[indexes], X_unlabeled, 
                                                      class_similarities[col_name]*similarity_factors[col_name], batch_size)
@@ -609,8 +630,8 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
                               class_similarities, col_name, [col_name])
         
-        general_score_after = multilabel_classifier(X_labeled_new, y_labeled_new, X_test, y_test, 
-                                                    success_metric='single_f1-score')
+        col_metrics_tmp, general_score_after = multilabel_classifier(X_labeled_new, y_labeled_new, X_test, y_test, 
+                                                    success_metric=[success_metric, 'single_f1-score'])
         
         if general_score_after >= general_score_before:
             
@@ -621,9 +642,8 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
             # increasing similarity factor
             similarity_factors[col_name] = update_similarity_factor(similarity_factors[col_name], 'increase')  
             
-            add multimetric to multilabel classification and remove the second one
-            s_metric = multilabel_classifier(np.vstack(X_labeled), y_labeled, np.vstack(X_test), y_test, 
-                                                       success_metric=success_metric)
+            # update column metrics after adding new instances
+            col_metrics = col_metrics_tmp
             
             
         else:
@@ -637,4 +657,3 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     print(X_labeled.shape, X_unlabeled.shape)            
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
-'''

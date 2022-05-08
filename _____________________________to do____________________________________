@@ -1,6 +1,5 @@
 TO DO -------------------------------------------------------------
 
-- put all the parameters to parameters.py
 - find the best embedding method for optimal similarity for each dataset
     - run 2-vectorization and then 2-fine_tuning_an_embedding
     - try open.ai embeddings
@@ -9,8 +8,7 @@ TO DO -------------------------------------------------------------
 - find the best similarity method with the chosen embedding
     - 1-find_proper_similarity_metric_for_dataset
     - document the experiments
-- update multilabel_classifier for taking multiple metrics
-    it can take multimetrics and returns both
+- find the best classifier - linearSVC?
     
 sınıf içi similarity hesaplarken:
     bütün sınıfı değerlendirmek yerine sadece kaliteli instance ları değerlendirsek?
