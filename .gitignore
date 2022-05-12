@@ -1,6 +1,8 @@
 
 .ipynb_checkpoints/*
 __pycache__/similarities.cpython-38.pyc
+Lib
+Scripts
 *.pyc
 *.data
 data/GoEmotions/
