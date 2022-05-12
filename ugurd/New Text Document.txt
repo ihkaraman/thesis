@@ -1,0 +1,5 @@
+Ek olarak bi şey daha paylaşmak istiyorum işe yarayabilir diye, fotoğrafta Senaryo 1 için toplam 5 bina da bulunan insanların 
+FIH değerleri var. 5 bina da toplam 2319 kişi var, başlangıçtaki değerlerin 0 olması x eksenindeki kişilerin numarası 
+artıkça o bina da bulundukları kat sayısının da yükselmesi. Toplam 48 senaryom var böyle FIH için ve FIN için de 48 
+senaryo var. Bu dağılımlar üzerinden PDF ler çıkarıp, yeni data generate edip bunu mevcut dataya entegre şeklinde de 
+"randomness" katılabilir mi diye paylaşmak istedim.
