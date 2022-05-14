@@ -48,6 +48,19 @@ def vectorize_data(text, model_name='stsb-roberta-large'):
         vectors = openai.Embedding.create(input = list(text), engine=model_name)
         vectors = [vec['embedding'] for vec in vectors['data']]
         
+    elif model_name in parameters.google_embeddings:
+        
+        if model_name == 'universal-sentence-encoder':
+            model_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
+
+        import tensorflow_hub as hub
+        model = hub.load(model_url)
+        vecs = []
+        batch_num = int(len(text) / 10_000) + (len(text) % 10_000 > 0)
+        for batch in np.array_split(text, batch_num):
+            vecs.extend(model(batch).numpy())
+        vectors = np.array(vecs)   
+        
     else:
         raise ValueError('Undefined embedding type!')
         

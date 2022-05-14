@@ -29,6 +29,9 @@ huggingface_embeddings = ['stsb-roberta-large',
                         'all-mpnet-base-v2',
                         'all-roberta-large-v1',
                         'all-distilroberta-v1',
+                        'albert-base-v2',
+                        'ALBERT-xlarge',
+                        'ALBERT-xxlarg',
                         'bert-base-nli-mean-tokens',
                         'distiluse-base-multilingual-cased-v1',
                         'multi-qa-mpnet-base-dot-v1',
@@ -44,6 +47,7 @@ huggingface_embeddings = ['stsb-roberta-large',
                         'paraphrase-mpnet-base-v2',
                         'paraphrase-MiniLM-L6-v2',
                         'paraphrase-xlm-r-multilingual-v1',
+                        'saibo/legal-roberta-base',
                         'sentence-t5-large',
                         'sentence-transformers/average_word_embeddings_glove.6B.300d',
                         'sentence-transformers/average_word_embeddings_glove.840B.300d']
@@ -52,3 +56,5 @@ openai_embeddings = ['text-similarity-babbage-001',
                     'text-similarity-ada-001',
                     'text-similarity-curie-001',
                     'text-similarity-davinci-001']
+                    
+google_embeddings = ['universal-sentence-encoder']              
