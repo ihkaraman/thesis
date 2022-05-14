@@ -39,11 +39,14 @@ huggingface_embeddings = ['stsb-roberta-large',
                         'distiluse-base-multilingual-cased-v1',
                         'distilbert-base-nli-mean-tokens',
                         'multi-qa-mpnet-base-dot-v1',
+                        'nlpaueb/legal-bert-base-uncased',
                         'paraphrase-multilingual-MiniLM-L12-v2',
                         'paraphrase-mpnet-base-v2',
                         'paraphrase-MiniLM-L6-v2',
                         'paraphrase-xlm-r-multilingual-v1',
-                        'sentence-t5-large']
+                        'sentence-t5-large',
+                        'sentence-transformers/average_word_embeddings_glove.6B.300d',
+                        'sentence-transformers/average_word_embeddings_glove.840B.300d']
                         
 openai_embeddings = ['text-similarity-babbage-001',
                     'text-similarity-ada-001',
