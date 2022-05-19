@@ -15,7 +15,7 @@ from sklearn.metrics import hamming_loss, accuracy_score, f1_score, classificati
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.multiclass import OneVsRestClassifier
 
-
+classifier_object=LinearSVC(random_state=1)
 
 balance_ratio = parameters.balance_ratio
 satisfying_threshold = parameters.satisfying_threshold
@@ -45,8 +45,14 @@ def vectorize_data(text, model_name='stsb-roberta-large'):
         import openai
         import config
         openai.api_key = config.openai_api_key
-        vectors = openai.Embedding.create(input = list(text), engine=model_name)
-        vectors = [vec['embedding'] for vec in vectors['data']]
+        
+        vecs = []
+        batch_num = int(len(text) / 1_000) + (len(text) % 1_000 > 0)
+        for batch in np.array_split(text, batch_num):
+            vectors = openai.Embedding.create(input=list(batch), engine=model_name)
+            vectors = [vec['embedding'] for vec in vectors['data']]
+            vecs.extend(vectors)
+        vectors = np.array(vecs)   
         
     elif model_name in parameters.google_embeddings:
         
@@ -55,6 +61,7 @@ def vectorize_data(text, model_name='stsb-roberta-large'):
 
         import tensorflow_hub as hub
         model = hub.load(model_url)
+        
         vecs = []
         batch_num = int(len(text) / 10_000) + (len(text) % 10_000 > 0)
         for batch in np.array_split(text, batch_num):
@@ -130,7 +137,7 @@ def metric_function(success_metric, clf_report, y_test):
     return output_metric
 
       
-def multilabel_classifier(X_train, y_train, X_test, y_test, classifier_object, success_metric):
+def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, classifier_object=classifier_object, print_results=False):
 
     '''
     success_metric:
@@ -155,23 +162,24 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, classifier_object, s
     f1_score_train = clf_report_train[metric_weighting_type]['f1-score']
     f1_score_test = clf_report_test[metric_weighting_type]['f1-score']
     
-    print('| '*50)
-    print("\033[1m" + 'Multilabel Classifier Results' + "\033[0m")
-    print("\033[1m" + type(classifier_object).__name__ + "\033[0m")
-    print('-'*30)
-    print('Hamming Loss')
-    print(f'Training : {hamLoss_train:.2f}')
-    print(f'Test     : {hamLoss_test:.2f}')
-    print('Exact Match Ratio')
-    print(f'Training : {acc_score_train:.2f}')
-    print(f'Test     : {acc_score_test:.2f}')
-    print('Macro F1-Score')
-    print(f'Training : {f1_score_train:.2f}')
-    print(f'Test     : {f1_score_test:.2f}')
-    print('-'*30)
-    print("\033[1m" + 'Classification Report' + "\033[0m")
-    print(classification_report(y_test.values, test_preds, target_names=list(y_test.columns)))
-    print('| '*100)
+    if print_results:
+        print('| '*50)
+        print("\033[1m" + 'Multilabel Classifier Results' + "\033[0m")
+        print("\033[1m" + type(classifier_object).__name__ + "\033[0m")
+        print('-'*30)
+        print('Hamming Loss')
+        print(f'Training : {hamLoss_train:.2f}')
+        print(f'Test     : {hamLoss_test:.2f}')
+        print('Exact Match Ratio')
+        print(f'Training : {acc_score_train:.2f}')
+        print(f'Test     : {acc_score_test:.2f}')
+        print('Macro F1-Score')
+        print(f'Training : {f1_score_train:.2f}')
+        print(f'Test     : {f1_score_test:.2f}')
+        print('-'*30)
+        print("\033[1m" + 'Classification Report' + "\033[0m")
+        print(classification_report(y_test.values, test_preds, target_names=list(y_test.columns)))
+        print('| '*100)
     
     
     
@@ -502,9 +510,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
     
     class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type)
-    print('class_similarities : ', class_similarities)
     similarity_factors = similarities.calculate_similarity_factors(class_similarities)
-    print('similarity_factors : ', similarity_factors)
     processed_columns = []
     validation = []
     
@@ -603,21 +609,19 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     
      
     class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type)
-    print('class_similarities : ', class_similarities)
     similarity_factors = similarities.calculate_similarity_factors(class_similarities)
-    print('similarity_factors : ', similarity_factors)
     
     validation = []
     
     # an initial classification
     col_metrics, general_score_before = multilabel_classifier(np.vstack(X_labeled), y_labeled, np.vstack(X_test), y_test, 
-                                               success_metric=[success_metric, 'single_f1-score'])
+                                               success_metric=[success_metric, 'single_f1-score'], print_results=True)
     
-    general_score_before = multilabel_classifier(X_labeled, y_labeled, X_test, y_test, success_metric='single_f1-score')
     
     iter_num = 0
     stopping_condition = True
-    while stopping_condition or iter_num < n_iter:
+    
+    while stopping_condition and iter_num < n_iter:
         
         num_of_new_instances = calculate_balancing_num_instance_multiclass(y_labeled, balance_ratio, 
                                                                                  calculation_type='metric_based', 
@@ -638,15 +642,15 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         new_instances = find_new_instance_batches(X_labeled.loc[indexes], X_unlabeled, 
                                                      class_similarities[col_name]*similarity_factors[col_name], batch_size)
         print('new_instances : ', new_instances)  
-                
+   
         val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = \
         prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
                               class_similarities, col_name, [col_name])
-        
-        col_metrics_tmp, general_score_after = multilabel_classifier(X_labeled_new, y_labeled_new, X_test, y_test, 
+
+        col_metrics_tmp, general_score_after = multilabel_classifier(np.vstack(X_labeled_new), y_labeled_new, np.vstack(X_test), y_test, 
                                                     success_metric=[success_metric, 'single_f1-score'])
         
-        if general_score_after >= general_score_before:
+        if general_score_after > general_score_before:
             
             print('adding instances ......  ', 'score >  before :', general_score_before, ' after :', general_score_after)
             X_labeled, y_labeled = X_labeled_new, y_labeled_new
@@ -657,7 +661,8 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
             
             # update column metrics after adding new instances
             col_metrics = col_metrics_tmp
-            
+            # updating general score to add better instances
+            general_score_before = general_score_after
             
         else:
             # decreasing similarity factor

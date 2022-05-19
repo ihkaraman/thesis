@@ -85,14 +85,14 @@ def degrade_vector_to_scalar(similarities, sim_calculation_type):
         
         try:
             class_similarity = sum(similarities)/len(similarities)
-        except AssertionErrors:
+        except AssertionError:
             print('Error occured')
             
     elif sim_calculation_type == 'safe_interval':
         class_similarity = np.percentile(similarities, 75)
    
     return class_similarity
-
+'''
 def calculate_within_class_similarity(vecs, sim_calculation_type, sim_type='cosine'):
     
     similarities = []
@@ -101,11 +101,24 @@ def calculate_within_class_similarity(vecs, sim_calculation_type, sim_type='cosi
         similarities.append(vector_similarity(vecs.loc[i], vecs.loc[j], sim_type))    
       
     return degrade_vector_to_scalar(similarities, sim_calculation_type) 
-
-
-# In[ ]:
-
-
+'''
+def calculate_within_class_similarity(vecs, sim_calculation_type, sim_type='cosine'):
+       
+    #import ray
+    #ray.init()
+    
+    #@ray.remote
+    def run(vec1, vec2, sim_type):
+        sim = vector_similarity(vec1, vec2, sim_type)
+        return sim
+    similarities = [run(vecs.loc[i], vecs.loc[j], sim_type) for i,j in list(combinations(vecs.index, 2))]
+    #futures = [run.remote(vecs.loc[i], vecs.loc[j], sim_type) for i,j in list(combinations(vecs.index, 2))]
+    #similarities = ray.get(futures) 
+    
+    #ray.shutdown()
+     
+    return degrade_vector_to_scalar(similarities, sim_calculation_type) 
+'''
 def calculate_similarity_between_vector_and_class(vec, class_vecs, sim_calculation_type='average', sim_type='cosine'):
     
     similarities = []
@@ -114,9 +127,23 @@ def calculate_similarity_between_vector_and_class(vec, class_vecs, sim_calculati
         similarities.append(vector_similarity(vec, c_vec, sim_type))
         
     return degrade_vector_to_scalar(similarities, sim_calculation_type) 
-
-
-# In[ ]:
+'''
+def calculate_similarity_between_vector_and_class(vec, class_vecs, sim_calculation_type='average', sim_type='cosine'):
+    
+    #import ray
+    #ray.init()
+    
+    #@ray.remote
+    def run(vec1, vec2, sim_type):
+        sim = vector_similarity(vec1, vec2, sim_type)
+        return sim
+    similarities = [run(vec, c_vec, sim_type) for c_vec in class_vecs]
+    #futures = [run.remote(vec, c_vec, sim_type) for c_vec in class_vecs]
+    #similarities = ray.get(futures) 
+    
+    #ray.shutdown()
+        
+    return degrade_vector_to_scalar(similarities, sim_calculation_type) 
 
 def calculate_similarity_factors(class_similarities):
     

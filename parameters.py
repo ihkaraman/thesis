@@ -17,7 +17,7 @@ success_metric = 'col_f1-score' # single_f1-score
 embedding_method = 'distiluse-base-multilingual-cased-v1' # try different embeddings and find proper one
 
 
-data_paths = {'opp115'   : r'C:\Users\IsmailKaraman\workspace\data\privacy_policy_data\OPP-115_v2\majority.csv',
+data_paths = {'opp115'   : r'C:\Users\IsmailKaraman\workspace\GitHub\thesis\data\opp-115.csv',
               'ohsumed'  : r'C:\Users\IsmailKaraman\workspace\GitHub\thesis\data\ohsumed.csv',
               'reuters'  : r'C:\Users\IsmailKaraman\workspace\GitHub\thesis\data\Reuters21578.csv'}
               
