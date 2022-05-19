@@ -633,7 +633,7 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         # selecting a random class with selection_probabilities
         col_name = random.choices(list(selection_probabilities.keys()), weights=selection_probabilities.values())[0]
         
-        print("\033[1m" + '-'*int(25-len(col_name)/2) + col_name + '-'*int(25-len(col_name)/2) +"\033[0m")
+        # print("\033[1m" + '-'*int(25-len(col_name)/2) + col_name + '-'*int(25-len(col_name)/2) +"\033[0m")
         
         # find the indexes that belong to the chosen class
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
@@ -641,7 +641,7 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         # find new instances from Unlabeled set by using similarity and similarity factor
         new_instances = find_new_instance_batches(X_labeled.loc[indexes], X_unlabeled, 
                                                      class_similarities[col_name]*similarity_factors[col_name], batch_size)
-        print('new_instances : ', new_instances)  
+        # print('new_instances : ', new_instances)  
    
         val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = \
         prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
