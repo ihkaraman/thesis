@@ -163,7 +163,6 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
     f1_score_test = clf_report_test[metric_weighting_type]['f1-score']
     
     if print_results:
-        print('| '*50)
         print("\033[1m" + 'Multilabel Classifier Results' + "\033[0m")
         print("\033[1m" + type(classifier_object).__name__ + "\033[0m")
         print('-'*30)
@@ -179,7 +178,7 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
         print('-'*30)
         print("\033[1m" + 'Classification Report' + "\033[0m")
         print(classification_report(y_test.values, test_preds, target_names=list(y_test.columns)))
-        print('| '*100)
+        print('* '*50)
     
     
     
