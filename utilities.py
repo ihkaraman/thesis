@@ -409,7 +409,7 @@ def oversample_dataset_v1(num_of_new_instances, X_labeled, y_labeled, X_unlabele
             f1_after = binary_classifier(np.vstack(X_labeled_new.values), y_labeled_new[col_name], np.vstack(X_test.values), y_test[col_name])
             
             if f1_after > f1_before:
-                print('adding instances ......  ', 'f1 before :', f1_before, ' f1 after :', f1_after)
+             
                 X_labeled, y_labeled = X_labeled_new, y_labeled_new
                 validation.extend(val_new)
                 # f1_before = f1_after if we assign f1_after to f1_before we may not catch the 
@@ -480,7 +480,7 @@ def oversample_dataset_v2(num_of_new_instances, X_labeled, y_labeled, X_unlabele
 
                 
                 if f1_after > f1_before:
-                    print('adding instances ......  ', 'f1 before :', f1_before, ' f1 after :', f1_after)
+                    
                     X_labeled, y_labeled = X_labeled_new, y_labeled_new
                     validation.extend(val_new)
                     # f1_before = f1_after if we assign f1_after to f1_before we may not catch the 
@@ -583,7 +583,6 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                         
                         if general_score_after >= general_score_before:
                             
-                            print('adding instances ......  ', 'score >  before :', general_score_before, ' after :', general_score_after)
                             X_labeled, y_labeled = X_labeled_new, y_labeled_new
                             X_unlabeled, y_unlabeled = X_unlabeled_new, y_unlabeled_new
                             validation.extend(val_new)
@@ -651,7 +650,6 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         
         if general_score_after > general_score_before:
             
-            print('adding instances ......  ', 'score >  before :', general_score_before, ' after :', general_score_after)
             X_labeled, y_labeled = X_labeled_new, y_labeled_new
             validation.extend(val_new)
             

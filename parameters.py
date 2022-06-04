@@ -9,7 +9,7 @@ satisfying_threshold = 0.9
 random_state = 1
 starting_index = 100000
 
-unlabaled_ratios = {'opp115':0.75, 'ohsumed':0.95, 'reuters':0.9}
+unlabaled_ratios = {'opp115':0.88, 'ohsumed':0.95, 'reuters':0.9}
 
 sim_calculation_type='average'
 sim_type = 'cosine'
