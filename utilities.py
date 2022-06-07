@@ -534,7 +534,6 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         similarity_factor = similarity_factors[col_name]
         
         all_similarities = calculate_all_similarities(X_labeled.loc[indexes], X_unlabeled, sort=False)
-        print('all_similarities : ', all_similarities)  
         iter_num = 0
         
         stopping_condition = True
