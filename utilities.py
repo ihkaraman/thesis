@@ -294,7 +294,8 @@ def find_similar_columns(instance, X_labeled, y_labeled, other_columns):
     return other_similarities
 
 
-def find_other_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, processed_columns):
+def find_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, processed_columns, 
+                similarity_factors=None):
                 
     # defining all labels as 0s
     new_labels = {c:0 for c in y_labeled.columns}
@@ -305,7 +306,7 @@ def find_other_labels(instance_X, X_labeled, y_labeled, class_similarities, col_
     other_columns = [i for i in y_labeled.columns if i not in processed_columns]
     other_similarities = find_similar_columns(instance_X, X_labeled, y_labeled, other_columns)
     for col, sim in other_similarities.items():
-        if sim > class_similarities[col]:
+        if sim > class_similarities[col]*similarity_factors[col]:
             new_labels[col] = 1
 
     return new_labels
@@ -358,7 +359,8 @@ def update_similarity_factor(similarity_factor, update_type):
     return similarity_factor
 
 
-def prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, class_similarities, col_name, processed_columns):
+def prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, class_similarities, 
+                          col_name, processed_columns, similarity_factors=None):
     # can be improved
     validation = []
     
@@ -367,8 +369,10 @@ def prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_un
         instance_X = X_unlabeled.loc[instance_index]
         instance_y = y_unlabeled.loc[instance_index] # note: this is for test case
 
-        new_labels = find_other_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, processed_columns)
-        X_labeled, y_labeled, X_unlabeled, y_unlabeled = add_instance(instance_X, instance_index, new_labels, X_labeled, y_labeled, X_unlabeled, y_unlabeled)
+        new_labels = find_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, 
+                                       processed_columns, similarity_factors)
+        X_labeled, y_labeled, X_unlabeled, y_unlabeled = add_instance(instance_X, instance_index, new_labels, 
+                                                                      X_labeled, y_labeled, X_unlabeled, y_unlabeled)
         # validation
         validation.append((col_name, instance_index, instance_X, (instance_y), new_labels))
     
@@ -643,7 +647,7 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
    
         val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = \
         prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
-                              class_similarities, col_name, [col_name])
+                              class_similarities, col_name, [col_name], similarity_factors)
 
         col_metrics_tmp, general_score_after = multilabel_classifier(np.vstack(X_labeled_new), y_labeled_new, np.vstack(X_test), y_test, 
                                                     success_metric=[success_metric, 'single_f1-score'])

@@ -1,27 +1,31 @@
 
-metric_weighting_type = 'macro avg'
-
+# useless
 threshold_factor = 1.5
-test_size = 0.2
 
+# metrics
+metric_weighting_type = 'macro avg'
+success_metric = 'col_f1-score' # single_f1-score
+
+# algorithm parameters
 balance_ratio = 0.5
-satisfying_threshold = 0.9
-random_state = 1
-starting_index = 100000
-
-unlabaled_ratios = {'opp115':0.88, 'ohsumed':0.95, 'reuters':0.9}
-
 sim_calculation_type='average'
 sim_type = 'cosine'
-success_metric = 'col_f1-score' # single_f1-score
-embedding_method = 'distiluse-base-multilingual-cased-v1' # try different embeddings and find proper one
 
+
+# stopping conditions
+satisfying_threshold = 0.9 #v3
+
+# other
+test_size = 0.2
+random_state = 1
+starting_index = 100000
+unlabaled_ratios = {'opp115':0.88, 'ohsumed':0.95, 'reuters':0.9}
+embedding_method = 'distiluse-base-multilingual-cased-v1' # try different embeddings and find proper one
 
 data_paths = {'opp115'   : r'C:\Users\IsmailKaraman\workspace\GitHub\thesis\data\opp-115.csv',
               'ohsumed'  : r'C:\Users\IsmailKaraman\workspace\GitHub\thesis\data\ohsumed.csv',
               'reuters'  : r'C:\Users\IsmailKaraman\workspace\GitHub\thesis\data\Reuters21578.csv'}
-              
-
+           
 huggingface_embeddings = ['stsb-roberta-large',
                         'all-MiniLM-L6-v2',
                         'all-MiniLM-L12-v2',
