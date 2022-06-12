@@ -134,7 +134,10 @@ def binary_classifier(X_train, y_train, X_test, y_test):
 
 def metric_function(success_metric, y_test, test_preds, test_scores):
     
-    type_, metric = success_metric.split('_')
+    if len(success_metric.split('_')) > 1:
+        type_, metric = success_metric.split('_')
+    else:
+        type_ = success_metric
 
     if type_=='col':
         clf_report = classification_report(y_test, test_preds, target_names=list(y_test.columns), output_dict=True)
