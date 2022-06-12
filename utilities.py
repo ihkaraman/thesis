@@ -216,7 +216,7 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
         
         output_metric = []
         for metric in success_metric:
-            output_metric.append(metric_function(success_metric, y_test, test_preds, test_scores))
+            output_metric.append(metric_function(metric, y_test, test_preds, test_scores))
                       
     return output_metric
 
