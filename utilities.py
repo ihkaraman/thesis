@@ -137,10 +137,10 @@ def metric_function(success_metric, y_test, test_preds, test_scores):
     type_, metric = success_metric.split('_')
 
     if type_=='col':
-        clf_report = classification_report(y_test, test_preds)
+        clf_report = classification_report(y_test, test_preds, target_names=list(y_test.columns), output_dict=True)
         output_metric = {col:clf_report[col][metric] for col in y_test.columns}  
     elif type_=='single':
-        clf_report = classification_report(y_test, test_preds)
+        clf_report = classification_report(y_test, test_preds, target_names=list(y_test.columns), output_dict=True)
         output_metric = clf_report[metric_weighting_type][metric]
     elif type_ == 'coverage':
         output_metric = coverage_error(y_test, test_scores)
