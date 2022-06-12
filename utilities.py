@@ -9,7 +9,7 @@ import similarities
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.svm import LinearSVC
+from sklearn.svm import LinearSVC, SVC
 
 from sklearn.metrics import hamming_loss, accuracy_score, f1_score, classification_report, coverage_error, label_ranking_loss
 from sklearn.utils.class_weight import compute_class_weight
@@ -19,7 +19,7 @@ from sklearn.multiclass import OneVsRestClassifier
 single_score = 'coverage' # 'single_f1-score'
 
 
-classifier_object=LinearSVC(random_state=1)
+classifier_object = SVC(kernel='linear',probability=True, random_state=1)
 
 balance_ratio = parameters.balance_ratio
 satisfying_threshold = parameters.satisfying_threshold
