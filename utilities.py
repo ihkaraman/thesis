@@ -11,9 +11,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.svm import LinearSVC
 
-from sklearn.metrics import hamming_loss, accuracy_score, f1_score, classification_report
+from sklearn.metrics import hamming_loss, accuracy_score, f1_score, classification_report, coverage_error, label_ranking_loss
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.multiclass import OneVsRestClassifier
+
+
+single_score = 'coverage' # 'single_f1-score'
+
 
 classifier_object=LinearSVC(random_state=1)
 
@@ -125,15 +129,20 @@ def binary_classifier(X_train, y_train, X_test, y_test):
     return f1_score(y_test, preds, average='binary')
 
 
-def metric_function(success_metric, clf_report, y_test):
+def metric_function(success_metric, y_test, test_preds, test_scores):
     
     type_, metric = success_metric.split('_')
 
     if type_=='col':
+        clf_report = classification_report(y_test, test_preds)
         output_metric = {col:clf_report[col][metric] for col in y_test.columns}  
     elif type_=='single':
+        clf_report = classification_report(y_test, test_preds)
         output_metric = clf_report[metric_weighting_type][metric]
-        
+    elif type_ == 'coverage':
+        output_metric = coverage_error(y_test, test_scores)
+    elif type_ == 'label_ranking':
+        output_metric = label_ranking_loss(y_test, test_scores)
     return output_metric
 
       
@@ -152,6 +161,8 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
     model.fit(X_train, y_train.values)
     train_preds = model.predict(X_train)
     test_preds = model.predict(X_test)
+    train_scores = model.predict_proba(X_train)
+    test_scores = model.predict_proba(X_test)
     
     hamLoss_train = hamming_loss(y_train.values, train_preds)
     hamLoss_test = hamming_loss(y_test.values, test_preds)
@@ -161,6 +172,10 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
     clf_report_test = classification_report(y_test.values, test_preds, target_names=list(y_test.columns), output_dict=True)  
     f1_score_train = clf_report_train[metric_weighting_type]['f1-score']
     f1_score_test = clf_report_test[metric_weighting_type]['f1-score']
+    coverage_train = coverage_error(y_train.values, train_scores)
+    coverage_test = coverage_error(y_test.values, test_scores)
+    rankLoss_train = label_ranking_loss(y_train.values, train_scores)
+    rankLoss_test = label_ranking_loss(y_test.values, test_scores)
     
     if print_results:
         print("\033[1m" + 'Multilabel Classifier Results' + "\033[0m")
@@ -175,6 +190,12 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
         print('Macro F1-Score')
         print(f'Training : {f1_score_train:.2f}')
         print(f'Test     : {f1_score_test:.2f}')
+        print('Coverage Error')
+        print(f'Training : {coverage_train:.2f}')
+        print(f'Test     : {coverage_test:.2f}')
+        print('Ranking Loss Error')
+        print(f'Training : {rankLoss_train:.2f}')
+        print(f'Test     : {rankLoss_test:.2f}')
         print('-'*30)
         print("\033[1m" + 'Classification Report' + "\033[0m")
         print(classification_report(y_test.values, test_preds, target_names=list(y_test.columns)))
@@ -184,7 +205,7 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
     
     if type(success_metric) == str:
         
-        output_metric = metric_function(success_metric, clf_report_test, y_test)
+        output_metric = metric_function(success_metric, y_test, test_preds, test_scores)
             
         return output_metric
     
@@ -192,7 +213,7 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
         
         output_metric = []
         for metric in success_metric:
-            output_metric.append(metric_function(metric, clf_report_test, y_test))
+            output_metric.append(metric_function(success_metric, y_test, test_preds, test_scores))
                       
     return output_metric
 
@@ -348,6 +369,18 @@ def add_instance(instance_X, instance_index, new_labels, X_labeled, y_labeled, X
 
     return X_labeled, y_labeled, X_unlabeled, y_unlabeled
 
+def check_for_improvement(single_score, general_score_after, general_score_before):
+    
+    if single_score in ['single_f1-score']:
+        if general_score_after > general_score_before:
+            return True
+        else:
+            return False
+    elif single_score in ['coverage', 'label_ranking']:
+        if general_score_after < general_score_before:
+            return True
+        else:
+            return False
 
 def update_similarity_factor(similarity_factor, update_type):
 
@@ -554,7 +587,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
             # potential_instances = {k:potential_instances[k] for k in ins_keys}
             
             binary_score_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
-            general_score_before = multilabel_classifier(X_labeled, y_labeled, X_test, y_test, success_metric='single_f1-score')
+            general_score_before = multilabel_classifier(X_labeled, y_labeled, X_test, y_test, success_metric=single_score)
             
             candidate_instances = []
             
@@ -582,9 +615,9 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                                               class_similarities, col_name, processed_columns)
                         
                         general_score_after = multilabel_classifier(X_labeled_new, y_labeled_new, X_test, y_test, 
-                                                                    success_metric='single_f1-score')
+                                                                    success_metric=single_score)
                         
-                        if general_score_after >= general_score_before:
+                        if check_for_improvement(single_score, general_score_after, general_score_before):
                             
                             X_labeled, y_labeled = X_labeled_new, y_labeled_new
                             X_unlabeled, y_unlabeled = X_unlabeled_new, y_unlabeled_new
@@ -606,7 +639,8 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
 
 
-def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size, n_iter, balance_ratio, success_metric):
+def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, 
+                          batch_size, n_iter, balance_ratio, success_metric):
     
      
     class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type)
@@ -616,7 +650,7 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     
     # an initial classification
     col_metrics, general_score_before = multilabel_classifier(np.vstack(X_labeled), y_labeled, np.vstack(X_test), y_test, 
-                                               success_metric=[success_metric, 'single_f1-score'], print_results=True)
+                                               success_metric=[success_metric, single_score], print_results=True)
     
     
     iter_num = 0
@@ -649,9 +683,11 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                               class_similarities, col_name, [col_name], similarity_factors)
 
         col_metrics_tmp, general_score_after = multilabel_classifier(np.vstack(X_labeled_new), y_labeled_new, np.vstack(X_test), y_test, 
-                                                    success_metric=[success_metric, 'single_f1-score'])
-        
-        if general_score_after > general_score_before:
+                                                    success_metric=[success_metric, single_score])
+
+                
+                
+        if check_for_improvement(single_score, general_score_after, general_score_before):
             
             X_labeled, y_labeled = X_labeled_new, y_labeled_new
             validation.extend(val_new)
