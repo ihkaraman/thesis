@@ -629,8 +629,8 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                 # print('Shapes --------------')
                 # print(X_labeled.values.shape, X_labeled.values.append(X_unlabeled.loc[idx]).shape)
                 # print(y_labeled[col_name].values.shape, y_labeled[col_name].values.append([1]).shape)
-                binary_score_after = binary_classifier(np.vstack(X_labeled.values.append(X_unlabeled.loc[idx])),
-                                                                 y_labeled[col_name].values,
+                binary_score_after = binary_classifier(np.vstack(X_labeled.append(X_unlabeled.loc[idx])),
+                                                                 np.append(y_labeled[col_name].values, 1),
                                                                  np.vstack(X_test.values), y_test[col_name])
             
                 if binary_score_after >= binary_score_before:
