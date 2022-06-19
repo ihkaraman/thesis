@@ -19,7 +19,7 @@ satisfying_threshold = 0.9 #v3
 test_size = 0.2
 random_state = 2
 starting_index = 100000
-unlabaled_ratios = {'opp115':0.92, 'ohsumed':0.95, 'reuters':0.9}
+unlabaled_ratios = {'opp115':0.95, 'ohsumed':0.95, 'reuters':0.9}
 embedding_method = 'distiluse-base-multilingual-cased-v1' # try different embeddings and find proper one
 
 data_paths = {'opp115'   : r'C:\Users\IsmailKaraman\workspace\GitHub\thesis\data\opp-115.csv',

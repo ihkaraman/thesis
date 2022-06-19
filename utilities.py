@@ -17,8 +17,6 @@ from sklearn.utils.class_weight import compute_class_weight
 from sklearn.multiclass import OneVsRestClassifier
 
 
-single_score = 'coverage' # 'single_f1-score'
-
 
 # classifier_object = SVC(kernel='linear',probability=True, random_state=1)
 # LinearSVC(class_weight='balanced', random_state=1)
@@ -147,7 +145,7 @@ def metric_function(success_metric, y_test, test_preds, test_scores):
         output_metric = clf_report[metric_weighting_type][metric]
     elif type_ == 'coverage':
         output_metric = coverage_error(y_test, test_scores)
-    elif type_ == 'label_ranking':
+    elif type_ == 'label-ranking':
         output_metric = label_ranking_loss(y_test, test_scores)
     return output_metric
 
@@ -221,7 +219,7 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
         for metric in success_metric:
             output_metric.append(metric_function(metric, y_test, test_preds, test_scores))
                       
-    return output_metric
+        return output_metric
 
 
 def calculate_imb_ratio(y):
@@ -545,7 +543,7 @@ def oversample_dataset_v2(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
 
 
-def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size, n_iter):
+def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size, n_iter, single_score):
     
     
     # giving priority to mostly imbalanced classes
@@ -646,7 +644,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
 
 
 def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, 
-                          batch_size, n_iter, balance_ratio, success_metric):
+                          batch_size, n_iter, balance_ratio, success_metric, single_score):
     
      
     class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type)
@@ -656,7 +654,7 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     
     # an initial classification
     col_metrics, general_score_before = multilabel_classifier(np.vstack(X_labeled), y_labeled, np.vstack(X_test), y_test, 
-                                               success_metric=[success_metric, single_score], print_results=True)
+                                               success_metric=[success_metric, single_score], print_results=False)
     
     
     iter_num = 0
@@ -699,7 +697,7 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
             validation.extend(val_new)
             
             # increasing similarity factor
-            similarity_factors[col_name] = update_similarity_factor(similarity_factors[col_name], 'increase')  
+            #similarity_factors[col_name] = update_similarity_factor(similarity_factors[col_name], 'increase')  
             
             # update column metrics after adding new instances
             col_metrics = col_metrics_tmp
