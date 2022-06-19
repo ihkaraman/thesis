@@ -12,7 +12,9 @@ import matplotlib.pyplot as plt
 from sklearn.svm import LinearSVC, SVC
 from sklearn.linear_model import LogisticRegression
 
-from sklearn.metrics import hamming_loss, accuracy_score, f1_score, classification_report, coverage_error, label_ranking_loss
+from sklearn.metrics import hamming_loss, accuracy_score, f1_score, classification_report, coverage_error 
+from sklearn.metrics import average_precision_score, label_ranking_average_precision_score, roc_auc_score
+from sklearn.metrics import brier_score_loss, precision_score, recall_score, zero_one_loss, label_ranking_loss, log_loss
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.multiclass import OneVsRestClassifier
 
@@ -129,24 +131,58 @@ def binary_classifier(X_train, y_train, X_test, y_test):
     
     return f1_score(y_test, preds, average='binary')
 
+def multilabel_brier_loss(y_true, y_pred, weighting):
+    
+    if weighting == 'average':
+        b_scores = []
+        for x, y in zip(y_true, y_pred):
+            b_scores.append(brier_score_loss(x, y))
+        return sum(b_scores)/len(b_scores)
+    
+    if weighting == 'macro':
+        
+        scores = []
+        for i in range(len(y_true[0])):
+            mask = y_true[:,i]==1
+            b_scores = []
+            for x, y in zip(y_true[mask], y_pred[mask]):
+                b_scores.append(brier_score_loss(x, y))
+            scores.append(sum(b_scores)/len(b_scores))
+
+        return sum(scores)/len(scores)
 
 def metric_function(success_metric, y_test, test_preds, test_scores):
     
-    if len(success_metric.split('_')) > 1:
-        type_, metric = success_metric.split('_')
-    else:
-        type_ = success_metric
-
-    if type_=='col':
+    if success_metric.startswith('col'):
+        success_metric = success_metric.replace('col_', '')
         clf_report = classification_report(y_test, test_preds, target_names=list(y_test.columns), output_dict=True)
-        output_metric = {col:clf_report[col][metric] for col in y_test.columns}  
-    elif type_=='single':
-        clf_report = classification_report(y_test, test_preds, target_names=list(y_test.columns), output_dict=True)
-        output_metric = clf_report[metric_weighting_type][metric]
-    elif type_ == 'coverage':
+        output_metric = {col:clf_report[col][success_metric] for col in y_test.columns}  
+    elif success_metric=='accuracy':
+        output_metric = accuracy_score(y_test, test_preds)
+    elif success_metric=='f1_score':
+        output_metric = f1_score(y_test, test_preds, average='macro')
+    elif success_metric == 'coverage':
         output_metric = coverage_error(y_test, test_scores)
-    elif type_ == 'label-ranking':
+    elif success_metric == 'label_ranking':
         output_metric = label_ranking_loss(y_test, test_scores)
+    elif success_metric == 'roc_auc_score':
+        output_metric = roc_auc_score(y_test, test_scores)
+    elif success_metric == 'log_loss':
+        output_metric = log_loss(y_test, test_scores)   
+    elif success_metric == 'average_precision':
+        output_metric = average_precision_score(y_test, test_scores)
+    elif success_metric == 'brier_loss':
+        output_metric = multilabel_brier_loss(y_test, test_scores, 'macro') 
+    elif success_metric == 'hamming_loss':
+        output_metric = hamming_loss(y_test, test_preds)
+    elif success_metric=='precision':
+        output_metric = precision_score(y_test, test_preds, average='macro')
+    elif success_metric=='recall':
+        output_metric = recall_score(y_test, test_preds, average='macro')
+    elif success_metric=='zero_one_loss':
+        output_metric = zero_one_loss(y_test, test_preds)  
+    elif success_metric == 'label_ranking_average_precision' :
+        output_metric = label_ranking_average_precision_score(y_test, test_scores)
     return output_metric
 
       

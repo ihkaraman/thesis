@@ -3,7 +3,7 @@
 threshold_factor = 1.5
 
 # metrics
-metric_weighting_type = 'macro avg'
+metric_weighting_type = 'macro'
 success_metric = 'col_f1-score' # single_f1-score
 
 # algorithm parameters
