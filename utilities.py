@@ -603,9 +603,9 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         
         stopping_condition = True
         
-        while stopping_condition or iter_num < n_iter:
-              
-            print(iter_num, ' iteration ...')              
+        while stopping_condition and iter_num < n_iter:
+            
+            iter_num += 1
             # filtering the instances that have greater similarity than similarity factor
             potential_instances = {k:v for k, v in all_similarities.items() if v>class_similarities[col_name]*similarity_factor}
             
@@ -629,7 +629,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                 # print('Shapes --------------')
                 # print(X_labeled.values.shape, X_labeled.values.append(X_unlabeled.loc[idx]).shape)
                 # print(y_labeled[col_name].values.shape, y_labeled[col_name].values.append([1]).shape)
-                binary_score_after = binary_classifier(np.vstack(X_labeled.append(X_unlabeled.loc[idx])),
+                binary_score_after = binary_classifier(np.vstack(X_labeled.append(pd.Series([X_unlabeled.loc[idx]]))),
                                                                  np.append(y_labeled[col_name].values, 1),
                                                                  np.vstack(X_test.values), y_test[col_name])
             
@@ -646,7 +646,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                         prepare_new_instances(candidate_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
                                               class_similarities, col_name, processed_columns)
                         
-                        general_score_after = multilabel_classifier(X_labeled_new, y_labeled_new, X_test, y_test, 
+                        general_score_after = multilabel_classifier(np.vstack(X_labeled_new), y_labeled_new, np.vstack(X_test), y_test, 
                                                                     success_metric=single_score)
                         
                         if check_for_improvement(single_score, general_score_after, general_score_before):
