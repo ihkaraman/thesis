@@ -360,8 +360,10 @@ def find_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, 
     new_labels = {c:0 for c in y_labeled.columns}
     # changing col_name's label as 1
     new_labels[col_name] = 1
-
-     ### finding other labels
+    
+    if not similarity_factors:
+        similarity_factors = {k:1 for k,v in class_similarities.items()}    
+    ### finding other labels
     other_columns = [i for i in y_labeled.columns if i not in processed_columns]
     other_similarities = find_similar_columns(instance_X, X_labeled, y_labeled, other_columns)
     for col, sim in other_similarities.items():
@@ -478,7 +480,10 @@ def oversample_dataset_v1(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         for batch in batches:
             
             new_instances = find_new_instance_batches(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name], batch) 
-            val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, class_similarities, col_name, processed_columns)
+            val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = prepare_new_instances(new_instances, X_labeled, 
+                                                                                                            y_labeled, X_unlabeled, 
+                                                                                                            y_unlabeled, class_similarities, 
+                                                                                                            col_name, processed_columns)
             
             # check results after every batch
             f1_after = binary_classifier(np.vstack(X_labeled_new.values), y_labeled_new[col_name], np.vstack(X_test.values), y_test[col_name])
