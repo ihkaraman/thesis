@@ -237,7 +237,7 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
         print('-'*30)
         print("\033[1m" + 'Classification Report' + "\033[0m")
         print(classification_report(y_test.values, test_preds, target_names=list(y_test.columns)))
-        print('* '*50)
+        print('* '*40)
     
     if type(success_metric) == str:
         
@@ -609,7 +609,6 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
             # filtering the instances that have greater similarity than similarity factor
             potential_instances = {k:v for k, v in all_similarities.items() if v>class_similarities[col_name]*similarity_factor}
             
-            print(len(potential_instances))
             if len(potential_instances) == 0:
                 break
             
@@ -619,16 +618,17 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
             # potential_instances = {k:potential_instances[k] for k in ins_keys}
             
             binary_score_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
-            general_score_before = multilabel_classifier(X_labeled, y_labeled, X_test, y_test, success_metric=single_score)
+            general_score_before = multilabel_classifier(np.vstack(X_labeled), y_labeled, np.vstack(X_test), y_test,
+                                                         success_metric=single_score, print_results=False)
             
             candidate_instances = []
             
             for idx in potential_instance_keys():
                                     
                 # check results for each instance,
-                print('____shapes____')
-                print(X_labeled.values.shape, X_labeled.values.append(X_unlabeled.loc[idx]).shape)
-                print(y_labeled[col_name].values.shape, y_labeled[col_name].values.append([1]).shape)
+                # print('Shapes --------------')
+                # print(X_labeled.values.shape, X_labeled.values.append(X_unlabeled.loc[idx]).shape)
+                # print(y_labeled[col_name].values.shape, y_labeled[col_name].values.append([1]).shape)
                 binary_score_after = binary_classifier(np.vstack(X_labeled.values.append(X_unlabeled.loc[idx])),
                                                                  y_labeled[col_name].values,
                                                                  np.vstack(X_test.values), y_test[col_name])
