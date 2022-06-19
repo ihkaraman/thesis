@@ -623,7 +623,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
             
             candidate_instances = []
             
-            for idx in potential_instance_keys():
+            for idx in potential_instance_keys:
                                     
                 # check results for each instance,
                 # print('Shapes --------------')
