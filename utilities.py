@@ -239,8 +239,6 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
         print(classification_report(y_test.values, test_preds, target_names=list(y_test.columns)))
         print('* '*50)
     
-    
-    
     if type(success_metric) == str:
         
         output_metric = metric_function(success_metric, y_test, test_preds, test_scores)
@@ -469,9 +467,7 @@ def oversample_dataset_v1(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         # if no need to add instance, skip that column
         if num_instance <= 0:
             continue
-       
-        print("\033[1m" + '-'*15 + col_name + '-'*15 +"\033[0m")
-        print('='*50)
+      
         f1_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
                         
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
@@ -522,9 +518,6 @@ def oversample_dataset_v2(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         # if no need to add instance, skip that column
         if num_instance <= 0:
             continue
-       
-        print("\033[1m" + '-'*15 + col_name + '-'*15 +"\033[0m")
-        print('='*50)
         
         f1_before = binary_classifier(np.vstack(X_labeled.values), y_labeled[col_name], np.vstack(X_test.values), y_test[col_name])
         
@@ -600,10 +593,6 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         # if no need to add instance, skip that column
         if num_instance <= 0:
             continue
-        
-        print("\033[1m" + '-'*int(25-len(col_name)/2) + col_name + '-'*int(25-len(col_name)/2) +"\033[0m")
-        print('='*50)
-        
         
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
         
