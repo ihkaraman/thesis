@@ -207,11 +207,9 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
     hamLoss_train = hamming_loss(y_train.values, train_preds)
     hamLoss_test = hamming_loss(y_test.values, test_preds)
     acc_score_train = accuracy_score(y_train.values, train_preds)
-    acc_score_test = accuracy_score(y_test.values, test_preds)  
-    clf_report_train = classification_report(y_train.values, train_preds, target_names=list(y_train.columns), output_dict=True)  
-    clf_report_test = classification_report(y_test.values, test_preds, target_names=list(y_test.columns), output_dict=True)  
-    f1_score_train = clf_report_train[metric_weighting_type]['f1-score']
-    f1_score_test = clf_report_test[metric_weighting_type]['f1-score']
+    acc_score_test = accuracy_score(y_test.values, test_preds)   
+    f1_score_train = f1_score(y_train.values, train_preds, average=metric_weighting_type)
+    f1_score_test = f1_score(y_test.values, test_preds, average=metric_weighting_type)
     coverage_train = coverage_error(y_train.values, train_scores)
     coverage_test = coverage_error(y_test.values, test_scores)
     rankLoss_train = label_ranking_loss(y_train.values, train_scores)
