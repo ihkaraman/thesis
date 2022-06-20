@@ -725,7 +725,7 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
             validation.extend(val_new)
             
             # increasing similarity factor
-            #similarity_factors[col_name] = update_similarity_factor(similarity_factors[col_name], 'increase')  
+            similarity_factors[col_name] = update_similarity_factor(similarity_factors[col_name], 'increase')  
             
             # update column metrics after adding new instances
             col_metrics = col_metrics_tmp

@@ -70,17 +70,12 @@ def vector_similarity(vec1, vec2, sim_type='cosine'):
 def degrade_vector_to_scalar(similarities, sim_calculation_type):
     
     if sim_calculation_type == 'average':
-        
-        try:
-            class_similarity = sum(similarities)/len(similarities)
-        except AssertionError:
-            print('Error occured')
+        class_similarity = np.mean(similarities)
             
     elif sim_calculation_type == 'safe_interval':
         class_similarity = np.percentile(similarities, 75)
-   
+        
     return class_similarity
-
 
 def calculate_similarity_between_vector_and_class(vec, class_vecs, sim_calculation_type='average', sim_type='cosine'):
     
