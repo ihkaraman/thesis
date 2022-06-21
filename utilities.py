@@ -217,8 +217,8 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
     
     if print_results:
         print("\033[1m" + 'Multilabel Classifier Results' + "\033[0m")
-        print("\033[1m" + type(classifier_object).__name__ + "\033[0m")
-        print('-'*30)
+        print( type(classifier_object).__name__ )
+        print('-'*20)
         print('Hamming Loss')
         print(f'Training : {hamLoss_train:.2f}')
         print(f'Test     : {hamLoss_test:.2f}')
@@ -234,7 +234,7 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
         print('Ranking Loss Error')
         print(f'Training : {rankLoss_train:.2f}')
         print(f'Test     : {rankLoss_test:.2f}')
-        print('-'*30)
+        print('-'*20)
         print("\033[1m" + 'Classification Report' + "\033[0m")
         print(classification_report(y_test.values, test_preds, target_names=list(y_test.columns)))
         print('* '*40)
@@ -279,7 +279,7 @@ def find_batches(batch_size, num_ins):
         return epochs
 
 
-def calculate_balancing_num_instance_binary(n_samples, n_total_samples, balance_ratio=0.5, calculation_type=None, success_metric=0.0):
+def calculate_balancing_num_instance_binary(n_samples, n_total_samples, balance_ratio=0.5, calculation_type='metric_based', success_metric=0.0):
     
     if n_samples/n_total_samples > balance_ratio:
         print("Be careful! Given balancing ratio is lower than the class' imbalance ratio")
@@ -586,6 +586,8 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     processed_columns = []
     validation = []
     
+    n_iter_dist = {k:int(n_iter*v/sum(num_of_new_instances.values())) for k,v in num_of_new_instances.items()}
+    
     for col_name, num_instance in num_of_new_instances.items():
         
         processed_columns.append(col_name)
@@ -603,7 +605,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         
         stopping_condition = True
         
-        while stopping_condition and iter_num < n_iter:
+        while stopping_condition and iter_num < n_iter_dist[col_name]:
             
             iter_num += 1
             # filtering the instances that have greater similarity than similarity factor
