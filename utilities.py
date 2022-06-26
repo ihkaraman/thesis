@@ -428,12 +428,12 @@ def add_instance(instance_X, instance_index, new_labels, X_labeled, y_labeled, X
 
 def check_for_improvement(single_score, general_score_after, general_score_before):
     
-    if single_score in ['single_f1-score']:
+    if single_score in ['single_f1-score', 'accuracy', 'f1_score', 'roc_auc_score', 'average_precision', 'precision', 'recall', 'label_ranking_average_precision']:
         if general_score_after > general_score_before:
             return True
         else:
             return False
-    elif single_score in ['coverage', 'label_ranking']:
+    elif single_score in ['coverage', 'label_ranking', 'log_loss' , 'brier_loss', 'hamming_loss', 'zero_one_loss']:
         if general_score_after < general_score_before:
             return True
         else:
@@ -735,11 +735,13 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
                               class_similarities, col_name, [col_name], similarity_factors)
 
-        col_metrics_tmp, general_score_after, scores = multilabel_classifier(np.vstack(X_labeled_new), y_labeled_new, 
+        output_metrics, scores = multilabel_classifier(np.vstack(X_labeled_new), y_labeled_new, 
                                                                              np.vstack(X_test), y_test,
                                                                              success_metric=[success_metric, single_score], 
                                                                              return_scores=True)
-                
+        col_metrics_tmp, general_score_after = output_metrics
+        
+        
         if check_for_improvement(single_score, general_score_after, general_score_before):
             
             X_labeled, y_labeled = X_labeled_new, y_labeled_new
