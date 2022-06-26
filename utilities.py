@@ -133,6 +133,8 @@ def binary_classifier(X_train, y_train, X_test, y_test):
 
 def multilabel_brier_loss(y_true, y_pred, weighting):
     
+    y_true = y_true.values
+    
     if weighting == 'average':
         b_scores = []
         for x, y in zip(y_true, y_pred):
@@ -186,7 +188,7 @@ def metric_function(success_metric, y_test, test_preds, test_scores):
     return output_metric
 
       
-def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, classifier_object=classifier_object, print_results=False):
+def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, classifier_object=classifier_object, print_results=False, return_scores=False):
 
     '''
     success_metric:
@@ -215,6 +217,22 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
     rankLoss_train = label_ranking_loss(y_train.values, train_scores)
     rankLoss_test = label_ranking_loss(y_test.values, test_scores)
     
+    scores = {
+    'exact_match_ratio':acc_score_test,
+    'f1_score':f1_score_test,
+    'hamming_loss':hamLoss_test,
+    'precision':precision_score(y_test.values, test_preds, average=metric_weighting_type),
+    'recall':recall_score(y_test.values, test_preds, average=metric_weighting_type),
+    'zero_one_loss':zero_one_loss(y_test.values, test_preds),
+    'coverage_error':coverage_test,
+    'label_ranking_loss':rankLoss_test,
+    'label_ranking_average_precision':label_ranking_average_precision_score(y_test.values, test_scores),
+    'roc_auc_score':roc_auc_score(y_test.values, test_preds, average=metric_weighting_type),
+    'log_loss':log_loss(y_test.values, test_preds),
+    'average_precision':average_precision_score(y_test.values, test_scores),
+    'brier_score_loss':multilabel_brier_loss(y_test, test_scores, 'macro'),
+    }
+    
     if print_results:
         print("\033[1m" + 'Multilabel Classifier Results' + "\033[0m")
         print( type(classifier_object).__name__ )
@@ -242,15 +260,16 @@ def multilabel_classifier(X_train, y_train, X_test, y_test, success_metric, clas
     if type(success_metric) == str:
         
         output_metric = metric_function(success_metric, y_test, test_preds, test_scores)
-            
-        return output_metric
     
     elif type(success_metric) == list:
         
         output_metric = []
         for metric in success_metric:
             output_metric.append(metric_function(metric, y_test, test_preds, test_scores))
-                      
+    
+    if return_scores:                  
+        return output_metric, scores
+    else:
         return output_metric
 
 
@@ -676,6 +695,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
 def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, 
                           batch_size, n_iter, balance_ratio, success_metric, single_score):
     
+    metric_history = []
      
     class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type)
     similarity_factors = similarities.calculate_similarity_factors(class_similarities)
@@ -683,14 +703,13 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     validation = []
     
     # an initial classification
-    col_metrics, general_score_before = multilabel_classifier(np.vstack(X_labeled), y_labeled, np.vstack(X_test), y_test, 
+    output_metric = multilabel_classifier(np.vstack(X_labeled), y_labeled, np.vstack(X_test), y_test, 
                                                success_metric=[success_metric, single_score], print_results=False)
-    
+    col_metrics, general_score_before = output_metric
     
     iter_num = 0
-    stopping_condition = True
     
-    while stopping_condition and iter_num < n_iter:
+    while len(X_unlabeled) > iter_num and iter_num < n_iter:
         
         num_of_new_instances = calculate_balancing_num_instance_multiclass(y_labeled, balance_ratio, 
                                                                                  calculation_type='metric_based', 
@@ -716,15 +735,17 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
                               class_similarities, col_name, [col_name], similarity_factors)
 
-        col_metrics_tmp, general_score_after = multilabel_classifier(np.vstack(X_labeled_new), y_labeled_new, np.vstack(X_test), y_test, 
-                                                    success_metric=[success_metric, single_score])
-
-                
+        col_metrics_tmp, general_score_after, scores = multilabel_classifier(np.vstack(X_labeled_new), y_labeled_new, 
+                                                                             np.vstack(X_test), y_test,
+                                                                             success_metric=[success_metric, single_score], 
+                                                                             return_scores=True)
                 
         if check_for_improvement(single_score, general_score_after, general_score_before):
             
             X_labeled, y_labeled = X_labeled_new, y_labeled_new
             validation.extend(val_new)
+            
+            metric_history.append(scores)
             
             # increasing similarity factor
             similarity_factors[col_name] = update_similarity_factor(similarity_factors[col_name], 'increase')  
@@ -744,4 +765,4 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
     print('Shapes --------------')
     print(X_labeled.shape, X_unlabeled.shape)            
                
-    return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
+    return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled, metric_history
