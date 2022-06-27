@@ -677,7 +677,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                             validation.extend(val_new)
                             
                             # increasing similarity factor
-                            similarity_factor = update_similarity_factor(similarity_factor, 'increase')  
+                            # similarity_factor = update_similarity_factor(similarity_factor, 'increase')  
                             
                         else:
                             # decreasing similarity factor
