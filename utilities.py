@@ -332,6 +332,8 @@ def find_new_instance_batches(X_labeled, X_unlabeled, class_similarity, batch_si
     # compares vector-class similarity with avg. class_sim to assign labels
     new_instances = []
     
+    X_unlabeled = X_unlabeled.sample(frac=1)
+    
     for idx, instance in X_unlabeled.iteritems():
         ins_sim = similarities.calculate_similarity_between_vector_and_class(instance, X_labeled)
         if ins_sim > class_similarity:
@@ -718,9 +720,10 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         selection_probabilities = {k:max(0, v/sum(num_of_new_instances.values())) for k,v in num_of_new_instances.items()}
         # normalizing probabilities
         selection_probabilities = {k:v/sum(selection_probabilities.values()) for k,v in selection_probabilities.items()}
+
         # selecting a random class with selection_probabilities
         col_name = random.choices(list(selection_probabilities.keys()), weights=selection_probabilities.values())[0]
-        
+
         # print("\033[1m" + '-'*int(25-len(col_name)/2) + col_name + '-'*int(25-len(col_name)/2) +"\033[0m")
         
         # find the indexes that belong to the chosen class
