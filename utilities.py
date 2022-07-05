@@ -512,9 +512,7 @@ def oversample_dataset_v1(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                 # f1_before = f1_after if we assign f1_after to f1_before we may not catch the 
             
             X_unlabeled, y_unlabeled = X_unlabeled_new, y_unlabeled_new
-            
-    print('Shapes --------------')
-    print(X_labeled.shape, X_unlabeled.shape)            
+    
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
 
@@ -589,9 +587,7 @@ def oversample_dataset_v2(num_of_new_instances, X_labeled, y_labeled, X_unlabele
             
             if num_of_failed_iter > 2:
                 break          
-            
-    print('Shapes --------------')
-    print(X_labeled.shape, X_unlabeled.shape)            
+           
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
 
@@ -686,10 +682,7 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                             similarity_factor = update_similarity_factor(similarity_factor, 'decrease')
 
                         # emptying the list of candidate isntances
-                        candidate_instances.clear()
-
-    print('Shapes --------------')
-    print(X_labeled.shape, X_unlabeled.shape)            
+                        candidate_instances.clear()           
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled 
 
@@ -765,9 +758,6 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
             similarity_factors[col_name] = update_similarity_factor(similarity_factors[col_name], 'decrease')
         
         X_unlabeled, y_unlabeled = X_unlabeled_new, y_unlabeled_new
-        iter_num += 1
-           
-    print('Shapes --------------')
-    print(X_labeled.shape, X_unlabeled.shape)            
+        iter_num += 1          
                
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled, metric_history
