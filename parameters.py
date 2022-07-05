@@ -17,9 +17,9 @@ satisfying_threshold = 0.9 #v3
 
 # other
 test_size = 0.2
-random_state = 2
+random_state = 160 # 2 sorunsuz split for one time
 starting_index = 100000
-unlabeled_ratios = {'opp115':0.97, 'ohsumed':0.95, 'reuters':0.95}
+unlabeled_ratios = {'opp115':0.95, 'ohsumed':0.95, 'reuters':0.95}
 embedding_method = 'distiluse-base-multilingual-cased-v1' # try different embeddings and find proper one
 
 data_paths = {'opp115'   : r'C:\Users\IsmailKaraman\workspace\GitHub\thesis\data\opp-115.csv',
