@@ -49,7 +49,7 @@ def js_similarity(vec1, vec2):
     return convert_distance_to_similarity(dist)
     
 
-def vector_similarity(vec1, vec2, sim_type='cosine'):
+def vector_similarity(vec1, vec2, sim_type):
     
     if sim_type == 'cosine':
         similarity = cosine_similarity(vec1, vec2)
@@ -77,20 +77,26 @@ def degrade_vector_to_scalar(similarities, sim_calculation_type):
         
     return class_similarity
 
-def calculate_similarity_between_vector_and_class(vec, class_vecs, sim_calculation_type='average', sim_type='cosine'):
+def calculate_similarity_between_vector_and_class(vec, class_vecs, sim_calculation_type, sim_type):
     
     similarities = [vector_similarity(vec, c_vec, sim_type) for c_vec in class_vecs]
         
     return degrade_vector_to_scalar(similarities, sim_calculation_type) 
 
 
-def calculate_similarity_within_classes(vecs, sim_calculation_type=None, sim_type='cosine'):
+def calculate_similarity_within_classes(vecs, sim_calculation_type, sim_type):
     
-    vectors_product = np.array(list(combinations(vecs, 2)))
-    first_part = vectors_product[:,0,:]
-    second_part = vectors_product[:,1,:]
-    sims = np.sum(np.multiply(first_part, second_part), axis=1)/(np.multiply(np.linalg.norm(first_part, axis=1), np.linalg.norm(second_part, axis=1)))
-     
+    if sim_type=='cosine':
+        vectors_product = np.array(list(combinations(vecs, 2)))
+        first_part = vectors_product[:,0,:]
+        second_part = vectors_product[:,1,:]
+        sims = np.sum(np.multiply(first_part, second_part), axis=1)/(np.multiply(np.linalg.norm(first_part, axis=1), 
+                                                                                 np.linalg.norm(second_part, axis=1)))
+    else:
+        sims = []
+        for vec1, vec2 in list(combinations(vecs, 2)):
+            sims.append(vector_similarity(vec1, vec2, sim_type))
+        
     if sim_calculation_type:
         return degrade_vector_to_scalar(sims, sim_calculation_type)  
     else:
@@ -115,12 +121,12 @@ def calculate_similarity_between_classes(vecs1, vecs2, sim_calculation_type=None
         return list(sims)
 
 
-def calculate_overall_class_similarities(X, y, sim_calculation_type):
+def calculate_overall_class_similarities(X, y, sim_calculation_type, sim_type):
     
     class_similarities = {}
     for col in y.columns:
         indexes = y[y[col] == 1].index
-        class_similarities[col] = calculate_similarity_within_classes(X.loc[indexes], sim_calculation_type) 
+        class_similarities[col] = calculate_similarity_within_classes(X.loc[indexes], sim_calculation_type, sim_type) 
         
     return class_similarities
 

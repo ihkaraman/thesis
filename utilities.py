@@ -326,7 +326,7 @@ def calculate_balancing_num_instance_multiclass(y, balance_ratio, calculation_ty
     return oversampling_counts
 
 
-def find_new_instance_batches(X_labeled, X_unlabeled, class_similarity, batch_size):
+def find_new_instance_batches(X_labeled, X_unlabeled, class_similarity, batch_size, sim_calculation_type, sim_type):
     
     # finds new instances from unlabeled set 
     # compares vector-class similarity with avg. class_sim to assign labels
@@ -335,7 +335,7 @@ def find_new_instance_batches(X_labeled, X_unlabeled, class_similarity, batch_si
     X_unlabeled = X_unlabeled.sample(frac=1)
     
     for idx, instance in X_unlabeled.iteritems():
-        ins_sim = similarities.calculate_similarity_between_vector_and_class(instance, X_labeled)
+        ins_sim = similarities.calculate_similarity_between_vector_and_class(instance, X_labeled, sim_calculation_type, sim_type)
         if ins_sim > class_similarity:
             new_instances.append(idx)
             if len(new_instances) >= batch_size:
@@ -360,19 +360,19 @@ def calculate_all_similarities(X_labeled, X_unlabeled, sort=False):
     return all_similarities
 
 
-def find_similar_columns(instance, X_labeled, y_labeled, other_columns):
+def find_similar_columns(instance, X_labeled, y_labeled, other_columns, sim_calculation_type, sim_type):
     
     other_similarities = {}
     
     for col_name in other_columns:
         
         indexes = (y_labeled[col_name] == 1).index
-        other_similarities[col_name]  = similarities.calculate_similarity_between_vector_and_class(instance, X_labeled.loc[indexes])
+        other_similarities[col_name]  = similarities.calculate_similarity_between_vector_and_class(instance, X_labeled.loc[indexes], sim_calculation_type, sim_type)
     
     return other_similarities
 
 
-def find_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, processed_columns, 
+def find_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, processed_columns, sim_calculation_type, sim_type,
                 similarity_factors=None):
                 
     # defining all labels as 0s
@@ -384,7 +384,7 @@ def find_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, 
         similarity_factors = {k:1 for k,v in class_similarities.items()}    
     ### finding other labels
     other_columns = [i for i in y_labeled.columns if i not in processed_columns]
-    other_similarities = find_similar_columns(instance_X, X_labeled, y_labeled, other_columns)
+    other_similarities = find_similar_columns(instance_X, X_labeled, y_labeled, other_columns, sim_calculation_type, sim_type)
     for col, sim in other_similarities.items():
         if sim > class_similarities[col]*similarity_factors[col]:
             new_labels[col] = 1
@@ -392,7 +392,7 @@ def find_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, 
     return new_labels
 
 
-def find_all_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name):
+def find_all_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, sim_calculation_type, sim_type):
                 
     # defining all labels as 0s
     new_labels = {c:0 for c in y_labeled.columns}
@@ -403,7 +403,7 @@ def find_all_labels(instance_X, X_labeled, y_labeled, class_similarities, col_na
     other_columns = y_labeled.columns
     other_columns = other_columns.remove(col_name)
     
-    other_similarities = find_similar_columns(instance_X, X_labeled, y_labeled, other_columns)
+    other_similarities = find_similar_columns(instance_X, X_labeled, y_labeled, other_columns, sim_calculation_type, sim_type)
     for col, sim in other_similarities.items():
         if sim > class_similarities[col]:
             new_labels[col] = 1
@@ -444,15 +444,15 @@ def check_for_improvement(single_score, general_score_after, general_score_befor
 def update_similarity_factor(similarity_factor, update_type):
 
     if update_type == 'increase':
-        similarity_factor = similarity_factor + ((1-similarity_factor)**2) * similarity_factor
+        similarity_factor = similarity_factor + ((1-similarity_factor)**4) * similarity_factor
     elif update_type == 'decrease':
-        similarity_factor = similarity_factor - ((1-similarity_factor)**2) * similarity_factor
+        similarity_factor = similarity_factor - ((1-similarity_factor)**4) * similarity_factor
     
     return similarity_factor
 
 
 def prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, class_similarities, 
-                          col_name, processed_columns, similarity_factors=None):
+                          col_name, processed_columns, sim_calculation_type, sim_type, similarity_factors=None):
     # can be improved
     validation = []
     
@@ -462,7 +462,7 @@ def prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_un
         instance_y = y_unlabeled.loc[instance_index] # note: this is for test case
 
         new_labels = find_labels(instance_X, X_labeled, y_labeled, class_similarities, col_name, 
-                                       processed_columns, similarity_factors)
+                                       processed_columns, sim_calculation_type, sim_type, similarity_factors)
         X_labeled, y_labeled, X_unlabeled, y_unlabeled = add_instance(instance_X, instance_index, new_labels, 
                                                                       X_labeled, y_labeled, X_unlabeled, y_unlabeled)
         # validation
@@ -471,7 +471,7 @@ def prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_un
     return validation, X_labeled, y_labeled, X_unlabeled, y_unlabeled
         
         
-def oversample_dataset_v1(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size):
+def oversample_dataset_v1(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, batch_size, sim_type):
     
     # giving priority to mostly imbalanced classes
     num_of_new_instances = {k: v for k, v in sorted(num_of_new_instances.items(), key=lambda item: item[1], reverse=True)}
@@ -496,7 +496,8 @@ def oversample_dataset_v1(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         
         for batch in batches:
             
-            new_instances = find_new_instance_batches(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name], batch) 
+            new_instances = find_new_instance_batches(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name], batch, 
+                                                      sim_calculation_type, sim_type) 
             val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = prepare_new_instances(new_instances, X_labeled, 
                                                                                                             y_labeled, X_unlabeled, 
                                                                                                             y_unlabeled, class_similarities, 
@@ -688,11 +689,11 @@ def oversample_dataset_v3(num_of_new_instances, X_labeled, y_labeled, X_unlabele
 
 
 def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled, X_test, y_test, sim_calculation_type, 
-                          batch_size, n_iter, balance_ratio, success_metric, single_score):
+                          batch_size, n_iter, balance_ratio, success_metric, single_score, sim_type):
     
     metric_history = []
      
-    class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type)
+    class_similarities = similarities.calculate_overall_class_similarities(X_labeled, y_labeled, sim_calculation_type, sim_type)
     similarity_factors = similarities.calculate_similarity_factors(class_similarities)
     
     validation = []
@@ -723,13 +724,13 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
         indexes = (y_labeled[y_labeled[col_name] == 1]).index
         
         # find new instances from Unlabeled set by using similarity and similarity factor
-        new_instances = find_new_instance_batches(X_labeled.loc[indexes], X_unlabeled, 
-                                                     class_similarities[col_name]*similarity_factors[col_name], batch_size)
+        new_instances = find_new_instance_batches(X_labeled.loc[indexes], X_unlabeled, class_similarities[col_name], batch_size, 
+                                                  sim_calculation_type, sim_type) 
         # print('new_instances : ', new_instances)  
    
         val_new, X_labeled_new, y_labeled_new, X_unlabeled_new, y_unlabeled_new = \
         prepare_new_instances(new_instances, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
-                              class_similarities, col_name, [col_name], similarity_factors)
+                              class_similarities, col_name, [col_name], sim_calculation_type, sim_type, similarity_factors)
 
         output_metrics, scores = multilabel_classifier(np.vstack(X_labeled_new), y_labeled_new, 
                                                                              np.vstack(X_test), y_test,
