@@ -300,8 +300,8 @@ def find_batches(batch_size, num_ins):
 
 def calculate_balancing_num_instance_binary(n_samples, n_total_samples, balance_ratio=0.5, calculation_type='metric_based', success_metric=0.0):
     
-    if n_samples/n_total_samples > balance_ratio:
-        print("Be careful! Given balancing ratio is lower than the class' imbalance ratio")
+    # if n_samples/n_total_samples > balance_ratio:
+        # print("Be careful! Given balancing ratio is lower than the class' imbalance ratio")
     
     balance_num = (n_total_samples*balance_ratio - n_samples)*2
     
