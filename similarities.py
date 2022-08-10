@@ -10,15 +10,16 @@ e = 0.00001
 
 def convert_distance_to_similarity(distance):
     
-    if distance == 0:
-        similarity = 1/(1+distance)
+    similarity = 1/(1+distance)
         
     return similarity
 
 def convert_similarity_to_distance(similarity):
     
     if similarity == 0:
-        distance = (1/similarity)-1
+        similarity += 0.000001
+    
+    distance = (1/similarity)-1
         
     return distance
 
