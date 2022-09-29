@@ -711,7 +711,10 @@ def oversample_dataset_v4(num_of_new_instances, X_labeled, y_labeled, X_unlabele
                                                                                  calculation_type='metric_based', 
                                                                                  s_metrics=col_metrics)
         # calculating selection probabilities by num of required instances
-        selection_probabilities = {k:max(0, v/sum(num_of_new_instances.values())) for k,v in num_of_new_instances.items()}
+        if sum(num_of_new_instances.values()) ==0:
+               selection_probabilities = {k:max(0, v/1) for k,v in num_of_new_instances.items()}
+        else:
+            selection_probabilities = {k:max(0, v/sum(num_of_new_instances.values())) for k,v in num_of_new_instances.items()}
         # normalizing probabilities
         selection_probabilities = {k:v/sum(selection_probabilities.values()) for k,v in selection_probabilities.items()}
 
